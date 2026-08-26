@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>INACAP - Desafío Kirchhoff</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --inacap-red: #e2231a;
+  --bg-dark: #0f0f0f;
+  --panel: #1a1a1a;
+  --accent: #e2231a;
+  --white: #ffffff;
+  --gray: #888888;
+  --green: #2ecc71;
+  --border: rgba(226, 35, 26, 0.3);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg-dark);
+  color: var(--white);
+  font-family: 'Rajdhani', sans-serif;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+}
+
+#app {
+  width: 100%;
+  max-width: 800px;
+  padding: 2rem 1rem;
+}
+
+header {
+  text-align: center;
+  border-bottom: 3px solid var(--inacap-red);
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+}
+
+.inst-name {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 2.8rem;
+  font-weight: 900;
+  margin-bottom: 0.2rem;
+  color: var(--inacap-red);
+  letter-spacing: 2px;
+}
+
+.inst-dept {
+  font-size: 1rem;
+  letter-spacing: 0.25em;
+  color: var(--white);
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
+}
+
+.sub-title {
+  font-size: 1.2rem;
+  color: var(--inacap-red);
+  font-weight: 600;
+  margin-top: 0.5rem;
+  text-transform: uppercase;
+}
+
+.credit-line {
+  font-size: 0.85rem;
+  color: var(--gray);
+  margin-top: 0.4rem;
+  font-style: italic;
+}
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 2rem;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+
+.q-meta {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.8rem;
+}
+
+.q-badge { background: var(--inacap-red); padding: 0.4rem 0.8rem; }
+
+.data-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.data-chip {
+  background: #252525;
+  border-left: 3px solid var(--inacap-red);
+  padding: 0.6rem 1rem;
+  min-width: 110px;
+}
+
+.dc-label { font-size: 0.7rem; color: var(--inacap-red); text-transform: uppercase; }
+.dc-value { font-size: 1.2rem; font-weight: 700; font-family: 'Share Tech Mono'; }
+
+.question-text {
+  font-size: 1.3rem;
+  margin-bottom: 1.5rem;
+  line-height: 1.4;
+  border-left: 4px solid var(--white);
+  padding-left: 1rem;
+}
+
+.input-group {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.answer-input {
+  flex: 1;
+  background: #2a2a2a;
+  border: 2px solid #444;
+  padding: 1rem;
+  color: white;
+  font-size: 1.5rem;
+  font-family: 'Share Tech Mono';
+  outline: none;
+}
+
+.answer-input:focus { border-color: var(--inacap-red); }
+
+.unit-tag {
+  background: #333;
+  padding: 0 1.5rem;
+  display: flex;
+  align-items: center;
+  font-weight: 700;
+  color: var(--inacap-red);
+  font-size: 1.2rem;
+}
+
+.feedback {
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  border-radius: 4px;
+  font-weight: 600;
+  display: none;
+}
+
+.btn {
+  width: 100%;
+  padding: 1rem;
+  font-family: 'Orbitron';
+  font-weight: 700;
+  text-transform: uppercase;
+  cursor: pointer;
+  border: none;
+  transition: 0.3s;
+}
+
+.btn-primary { background: var(--inacap-red); color: white; }
+.btn-primary:hover { background: #b51a14; }
+
+.nota-display {
+  font-family: 'Orbitron';
+  font-size: 5rem;
+  text-align: center;
+  margin: 1rem 0;
+  color: var(--inacap-red);
+}
+
+.stats { text-align: center; margin-bottom: 2rem; font-size: 1.2rem; color: var(--gray); }
+
+.hidden { display: none; }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <header>
+    <div class="inst-name">INACAP</div>
+    <div class="inst-dept">Electricidad y Electrónica</div>
+    <div class="sub-title">Leyes de Kirchhoff: LVK & LCK</div>
+    <div class="credit-line">Aporte de la docente Edith Mena (NMZ)</div>
+  </header>
+
+  <div id="screen-welcome" class="card">
+    <h2 style="margin-bottom:1rem">Evaluador de Circuitos</h2>
+    <p style="color:var(--gray); margin-bottom:2rem">
+      Se generarán 10 ejercicios de circuitos Serie y Paralelo.<br>
+      Deberás calcular voltajes, corrientes o resistencias incógnitas.<br>
+      <strong>Exigencia: 60% para nota 4.0</strong>
+    </p>
+    <button class="btn btn-primary" onclick="start()">Comenzar Desafío</button>
+  </div>
+
+  <div id="screen-quiz" class="card hidden">
+    <div class="q-meta">
+      <span class="q-badge" id="q-idx">PREGUNTA 1 / 10</span>
+      <span id="q-type" style="color:var(--inacap-red)">SERIE</span>
+    </div>
+
+    <div class="data-grid" id="data-grid"></div>
+
+    <div class="question-text" id="q-text"></div>
+
+    <div class="input-group">
+      <input type="number" id="ans-input" class="answer-input" step="any" placeholder="0.00">
+      <div class="unit-tag" id="unit-tag">V</div>
+    </div>
+
+    <div id="feedback" class="feedback"></div>
+
+    <button id="btn-check" class="btn btn-primary" onclick="check()">Validar</button>
+    <button id="btn-next" class="btn btn-primary hidden" onclick="next()">Siguiente</button>
+  </div>
+
+  <div id="screen-res" class="card hidden">
+    <h2 style="text-align:center">RESULTADO FINAL</h2>
+    <div class="nota-display" id="nota-res">1.0</div>
+    <div class="stats" id="stats-res"></div>
+    <button class="btn btn-primary" onclick="location.reload()">Reiniciar</button>
+  </div>
+</div>
+
+<script>
+// El resto de la lógica de script se mantiene igual para asegurar la funcionalidad
+const E24 = [10, 12, 15, 18, 22, 27, 33, 39, 47, 56, 68, 82, 100, 120, 150, 220, 330, 470, 560, 680, 820, 1000];
+let currentQ = 0, score = 0, questions = [];
+
+function getR() { return E24[Math.floor(Math.random()*E24.length)]; }
+function getV() { return Math.floor(Math.random() * 21) + 10; } 
+
+function generateQuestions() {
+    for(let i=0; i<10; i++) {
+        const isSerie = Math.random() > 0.5;
+        const numRes = Math.random() > 0.5 ? 2 : 3;
+        const Vt = getV();
+        const rs = Array.from({length: numRes}, getR);
+        
+        if(isSerie) {
+            const Rt = rs.reduce((a, b) => a + b, 0);
+            const It = Vt / Rt;
+            const subType = Math.floor(Math.random() * 4);
+
+            if(subType === 0) {
+                questions.push({ type: 'SERIE (LVK)', text: 'Calcule la Resistencia Total (Rt) del circuito.', data: rs.map((r,idx)=>({l:`R${idx+1}`, v:r+' Ω'})).concat({l:'V_total', v:Vt+' V'}), ans: Rt, unit: 'Ω' });
+            } else if(subType === 1) {
+                const iDisplay = It < 0.1 ? (It*1000).toFixed(1) : It.toFixed(3);
+                const iUnit = It < 0.1 ? 'mA' : 'A';
+                questions.push({ type: 'SERIE (LVK)', text: 'Calcule la Corriente Total del circuito.', data: rs.map((r,idx)=>({l:`R${idx+1}`, v:r+' Ω'})).concat({l:'V_total', v:Vt+' V'}), ans: parseFloat(iDisplay), unit: iUnit });
+            } else if(subType === 2) {
+                const target = Math.floor(Math.random()*numRes);
+                const Vn = It * rs[target];
+                questions.push({ type: 'SERIE (LVK)', text: `Calcule el Voltaje en la resistencia R${target+1}.`, data: rs.map((r,idx)=>({l:`R${idx+1}`, v:r+' Ω'})).concat({l:'V_total', v:Vt+' V'}), ans: Vn.toFixed(2), unit: 'V' });
+            } else {
+                const unknownIdx = Math.floor(Math.random()*numRes);
+                const knowns = rs.filter((_, idx) => idx !== unknownIdx);
+                const iDisplay = (It*1000).toFixed(1);
+                questions.push({ type: 'SERIE (LVK)', text: `Si la corriente es ${iDisplay} mA, calcule el valor de R${unknownIdx+1}.`, data: knowns.map((r,idx)=>({l:`R_conocida`, v:r+' Ω'})).concat({l:'V_total', v:Vt+' V'}), ans: rs[unknownIdx], unit: 'Ω' });
+            }
+        } else {
+            const Req = 1 / rs.reduce((a, b) => a + (1/b), 0);
+            const It = Vt / Req;
+            const subType = Math.floor(Math.random() * 4);
+
+            if(subType === 0) {
+                questions.push({ type: 'PARALELO (LCK)', text: 'Calcule la Resistencia Equivalente (Req).', data: rs.map((r,idx)=>({l:`R${idx+1}`, v:r+' Ω'})).concat({l:'V_total', v:Vt+' V'}), ans: Req.toFixed(2), unit: 'Ω' });
+            } else if(subType === 1) {
+                const iDisplay = It < 0.1 ? (It*1000).toFixed(1) : It.toFixed(2);
+                const iUnit = It < 0.1 ? 'mA' : 'A';
+                questions.push({ type: 'PARALELO (LCK)', text: 'Calcule la Corriente Total de la fuente.', data: rs.map((r,idx)=>({l:`R${idx+1}`, v:r+' Ω'})).concat({l:'V_total', v:Vt+' V'}), ans: parseFloat(iDisplay), unit: iUnit });
+            } else if(subType === 2) {
+                const target = Math.floor(Math.random()*numRes);
+                const In = Vt / rs[target];
+                const iUnit = In < 0.1 ? 'mA' : 'A';
+                const iVal = In < 0.1 ? (In*1000).toFixed(1) : In.toFixed(2);
+                questions.push({ type: 'PARALELO (LCK)', text: `Calcule la corriente que circula por R${target+1}.`, data: rs.map((r,idx)=>({l:`R${idx+1}`, v:r+' Ω'})).concat({l:'V_total', v:Vt+' V'}), ans: parseFloat(iVal), unit: iUnit });
+            } else {
+                const unknownIdx = Math.floor(Math.random()*numRes);
+                const knowns = rs.filter((_, idx) => idx !== unknownIdx);
+                const iDisplay = (It*1000).toFixed(1);
+                questions.push({ type: 'PARALELO (LCK)', text: `Si la corriente total es ${iDisplay} mA, calcule R${unknownIdx+1}.`, data: knowns.map((r,idx)=>({l:`R_conocida`, v:r+' Ω'})).concat({l:'V_total', v:Vt+' V'}), ans: rs[unknownIdx], unit: 'Ω' });
+            }
+        }
+    }
+}
+
+function start() {
+    generateQuestions();
+    document.getElementById('screen-welcome').classList.add('hidden');
+    document.getElementById('screen-quiz').classList.remove('hidden');
+    render();
+}
+
+function render() {
+    const q = questions[currentQ];
+    document.getElementById('q-idx').textContent = `PREGUNTA ${currentQ + 1} / 10`;
+    document.getElementById('q-type').textContent = q.type;
+    document.getElementById('q-text').textContent = q.text;
+    document.getElementById('unit-tag').textContent = q.unit;
+    document.getElementById('ans-input').value = '';
+    document.getElementById('feedback').style.display = 'none';
+    document.getElementById('btn-check').classList.remove('hidden');
+    document.getElementById('btn-next').classList.add('hidden');
+    
+    const grid = document.getElementById('data-grid');
+    grid.innerHTML = q.data.map(d => `<div class="data-chip"><div class="dc-label">${d.l}</div><div class="dc-value">${d.v}</div></div>`).join('');
+}
+
+function check() {
+    const userAns = parseFloat(document.getElementById('ans-input').value);
+    const q = questions[currentQ];
+    const isCorrect = Math.abs(userAns - q.ans) < (q.ans * 0.05) || Math.abs(userAns - q.ans) < 0.1;
+
+    const fb = document.getElementById('feedback');
+    fb.style.display = 'block';
+    fb.style.background = isCorrect ? 'rgba(46,204,113,0.2)' : 'rgba(226,35,26,0.2)';
+    fb.style.color = isCorrect ? '#2ecc71' : '#ff4444';
+    fb.innerHTML = isCorrect ? 'CORRECTO' : `INCORRECTO. Valor esperado: ${q.ans} ${q.unit}`;
+
+    if(isCorrect) score++;
+    document.getElementById('btn-check').classList.add('hidden');
+    document.getElementById('btn-next').classList.remove('hidden');
+}
+
+function next() {
+    currentQ++;
+    if(currentQ < 10) render();
+    else showResults();
+}
+
+function showResults() {
+    document.getElementById('screen-quiz').classList.add('hidden');
+    document.getElementById('screen-res').classList.remove('hidden');
+    
+    const logro = (score / 10) * 100;
+    let nota = score < 6 ? (score / 6) * 3 + 1 : ((score - 6) / 4) * 3 + 4;
+    
+    document.getElementById('nota-res').textContent = nota.toFixed(1);
+    document.getElementById('stats-res').innerHTML = `Logro: ${logro}%<br>Correctas: ${score} de 10`;
+}
+</script>
+</body>
+</html>
