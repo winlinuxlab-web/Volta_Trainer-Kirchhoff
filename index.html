@@ -507,7 +507,7 @@ tr:nth-child(even) {
 <div class="card" id="screen-welcome">
   <div class="avatar-layout">
     <div class="avatar-img-wrap">
-      <img class="avatar-img dynamic" src="assets/img/max-welcome.png" alt="Avatar MaxWatt en pose dinámica">
+      <img class="avatar-img dynamic" src="assets/img/max-welcome.png" alt="Avatar MaxWatt en pose dinámica" onerror="this.style.display='none'">
     </div>
 
     <div class="speech-bubble">
@@ -544,7 +544,7 @@ tr:nth-child(even) {
     <button class="btn btn-primary" onclick="startQuiz()">Comenzar Evaluación</button>
     <button class="btn btn-secondary" onclick="showStudentProgressFromWelcome()">Ver Mi Progreso</button>
     <button class="btn btn-secondary" onclick="showRanking()">Ver Ranking</button>
-    <button class="btn btn-secondary" onclick="showTeacherPanel().catch(console.error)">Panel Docente</button>
+    <button class="btn btn-secondary" onclick="showTeacherPanel()">Panel Docente</button>
   </div>
 </div>
 
@@ -688,10 +688,8 @@ let current = 0;
 let score = 0;
 let currentStudent = "";
 let audioEnabled = false;
-let errors = resetErrorCounter();
+let errors = { serie: 0, paralelo: 0 };
 let answeredCurrentQuestion = false;
-
-// Gamificación
 let streak = 0;
 let maxStreak = 0;
 
@@ -699,24 +697,19 @@ let maxStreak = 0;
 // FUNCIONES DE APOYO
 // ===========================================================
 
-function resetErrorCounter() {
-  return {
-    serie: 0,
-    paralelo: 0
-  };
-}
-
-function smartRound(num, decimals = 6) {
+function smartRound(num, decimals) {
+  decimals = decimals || 6;
   const n = Number(num);
-  if (!Number.isFinite(n)) return n;
+  if (!isFinite(n)) return n;
   const nearestInteger = Math.round(n);
   if (Math.abs(n - nearestInteger) < 1e-9) return nearestInteger;
   return Number(n.toFixed(decimals));
 }
 
-function smartFormat(num, maxDecimals = 4) {
+function smartFormat(num, maxDecimals) {
+  maxDecimals = maxDecimals || 4;
   const n = Number(num);
-  if (!Number.isFinite(n)) return String(num);
+  if (!isFinite(n)) return String(num);
   const nearestInteger = Math.round(n);
   if (Math.abs(n - nearestInteger) < 1e-9) return String(nearestInteger);
   return String(Number(n.toFixed(maxDecimals)));
@@ -748,7 +741,9 @@ function hideAllScreens() {
     "screen-ranking",
     "screen-teacher"
   ];
-  screens.forEach(id => document.getElementById(id).classList.add("hidden"));
+  screens.forEach(function(id) {
+    document.getElementById(id).classList.add("hidden");
+  });
 }
 
 function goHome() {
@@ -773,37 +768,57 @@ function getSpanishMaleVoice() {
   if (!("speechSynthesis" in window)) return null;
   const voices = window.speechSynthesis.getVoices() || [];
   if (!voices.length) return null;
-  const spanishVoices = voices.filter(v => String(v.lang || "").toLowerCase().startsWith("es"));
+  
+  const spanishVoices = voices.filter(function(v) {
+    return String(v.lang || "").toLowerCase().indexOf("es") === 0;
+  });
+  
   const preferredMaleNames = [
     "pablo", "jorge", "diego", "carlos", "miguel", "juan",
     "josé", "jose", "luis", "andrés", "andres", "raul", "enrique",
     "gonzalo", "martin", "alberto", "ricardo", "google español"
   ];
+  
   const femaleHints = [
     "maria", "maría", "paulina", "monica", "mónica", "helena",
     "sabina", "laura", "lucia", "lucía", "elvira"
   ];
-  const preferred = spanishVoices.find(v => {
+  
+  const preferred = spanishVoices.find(function(v) {
     const name = String(v.name || "").toLowerCase();
-    return preferredMaleNames.some(item => name.includes(item)) &&
-           !femaleHints.some(item => name.includes(item));
+    const isMale = preferredMaleNames.some(function(item) { return name.indexOf(item) >= 0; });
+    const isFemale = femaleHints.some(function(item) { return name.indexOf(item) >= 0; });
+    return isMale && !isFemale;
   });
-  return preferred || spanishVoices.find(v => !femaleHints.some(item => String(v.name || "").toLowerCase().includes(item))) || spanishVoices[0] || null;
+  
+  if (preferred) return preferred;
+  
+  const notFemale = spanishVoices.find(function(v) {
+    const name = String(v.name || "").toLowerCase();
+    return !femaleHints.some(function(item) { return name.indexOf(item) >= 0; });
+  });
+  
+  return notFemale || spanishVoices[0] || null;
 }
 
-function speakRaw(text, options = {}) {
+function speakRaw(text, options) {
+  options = options || {};
   if (!("speechSynthesis" in window)) return;
+  
   window.speechSynthesis.cancel();
-  const utterance = new SpeechSynthesisUtterance(text);
+  
+  var utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = "es-CL";
-  utterance.rate = options.rate ?? 0.95;
-  utterance.pitch = options.pitch ?? 1;
+  utterance.rate = options.rate || 0.95;
+  utterance.pitch = options.pitch || 1;
+
   if (options.preferMaleVoice) {
-    const voice = getSpanishMaleVoice();
+    var voice = getSpanishMaleVoice();
     if (voice) utterance.voice = voice;
-    utterance.pitch = options.pitch ?? 0.82;
-    utterance.rate = options.rate ?? 0.92;
+    utterance.pitch = options.pitch || 0.82;
+    utterance.rate = options.rate || 0.92;
   }
+
   window.speechSynthesis.speak(utterance);
 }
 
@@ -816,7 +831,7 @@ function speakAvatar(text) {
   speakRaw(speechifyText(text), { preferMaleVoice: true, pitch: 0.78, rate: 0.9 });
 }
 
-let maxWattAudio = null;
+var maxWattAudio = null;
 
 function playMaxWattAudio(audioPath, fallbackText) {
   try {
@@ -824,13 +839,19 @@ function playMaxWattAudio(audioPath, fallbackText) {
       maxWattAudio.pause();
       maxWattAudio.currentTime = 0;
     }
-    window.speechSynthesis && window.speechSynthesis.cancel();
+    
+    if (window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+    
     maxWattAudio = new Audio(audioPath);
     maxWattAudio.preload = "auto";
+    
     maxWattAudio.onerror = function() {
       if (fallbackText) speakAvatar(fallbackText);
     };
-    const playPromise = maxWattAudio.play();
+    
+    var playPromise = maxWattAudio.play();
     if (playPromise && typeof playPromise.catch === "function") {
       playPromise.catch(function() {
         if (fallbackText) speakAvatar(fallbackText);
@@ -842,7 +863,7 @@ function playMaxWattAudio(audioPath, fallbackText) {
 }
 
 function speechifyUnit(unit) {
-  const map = {
+  var map = {
     "A": "Amperes",
     "mA": "miliamperes",
     "Ω": "Ohms",
@@ -852,7 +873,7 @@ function speechifyUnit(unit) {
 }
 
 function speechifyLabel(label) {
-  const map = {
+  var map = {
     "V": "Voltaje",
     "R": "Resistencia",
     "I": "Corriente",
@@ -864,7 +885,7 @@ function speechifyLabel(label) {
 }
 
 function speechNumber(value) {
-  const text = String(value);
+  var text = String(value);
   return text.replace(/(\d+)\.(\d+)/g, "$1 coma $2");
 }
 
@@ -878,23 +899,30 @@ function speechifyText(text) {
 }
 
 function valueWithUnitSpeech(value, unit) {
-  return `${speechNumber(smartFormat(value))} ${speechifyUnit(unit)}`;
+  return speechNumber(smartFormat(value)) + " " + speechifyUnit(unit);
 }
 
 function speakWelcomeAvatar() {
-  const textoBienvenida =
+  var textoBienvenida =
     "Hola, soy MaxWatt. Bienvenido a KirchhoffTrainer. Resolverás diez desafíos de circuitos eléctricos " +
     "usando las Leyes de Kirchhoff. Analizarás circuitos en serie y paralelo para calcular voltajes, " +
     "corrientes y resistencias. Escribe solo el valor numérico, usa la unidad indicada en pantalla " +
     "y recuerda convertir miliamperes a amperes cuando corresponda. " +
     "La nota cuatro coma cero se obtiene con sesenta por ciento de logro. ¡Comencemos!";
-  playMaxWattAudio(MAXWATT_AUDIO.bienvenido, textoBienvenida);
+  
+  // Si no hay archivos de audio, usa voz del navegador
+  if (!MAXWATT_AUDIO.bienvenido || MAXWATT_AUDIO.bienvenido === "assets/audio/Bienvenido.mp3") {
+    speakAvatar(textoBienvenida);
+  } else {
+    playMaxWattAudio(MAXWATT_AUDIO.bienvenido, textoBienvenida);
+  }
 }
 
 function updateAudioToggleUI() {
-  const btn = document.getElementById("btn-audio-toggle");
-  const repeatBtn = document.getElementById("btn-repeat-audio");
+  var btn = document.getElementById("btn-audio-toggle");
+  var repeatBtn = document.getElementById("btn-repeat-audio");
   if (!btn) return;
+  
   if (audioEnabled) {
     btn.textContent = "🔊 Audio";
     btn.style.background = "var(--inacap-red)";
@@ -913,26 +941,34 @@ function updateAudioToggleUI() {
 function toggleAudioInGame() {
   audioEnabled = !audioEnabled;
   updateAudioToggleUI();
-  if (audioEnabled) readCurrentQuestion();
-  else window.speechSynthesis && window.speechSynthesis.cancel();
+  if (audioEnabled) {
+    readCurrentQuestion();
+  } else if (window.speechSynthesis) {
+    window.speechSynthesis.cancel();
+  }
 }
 
 // ===========================================================
 // SONIDOS (Web Audio API)
 // ===========================================================
 
-const AudioCtx = window.AudioContext || window.webkitAudioContext;
-let _actx = null;
+var AudioCtx = window.AudioContext || window.webkitAudioContext;
+var _actx = null;
+
 function getACtx() {
   if (!_actx) _actx = new AudioCtx();
   return _actx;
 }
 
-function playBeep(frequency, duration, type = "sine", gain = 0.25, delay = 0) {
+function playBeep(frequency, duration, type, gain, delay) {
+  type = type || "sine";
+  gain = gain || 0.25;
+  delay = delay || 0;
+  
   try {
-    const ctx = getACtx();
-    const osc = ctx.createOscillator();
-    const gn  = ctx.createGain();
+    var ctx = getACtx();
+    var osc = ctx.createOscillator();
+    var gn = ctx.createGain();
     osc.connect(gn);
     gn.connect(ctx.destination);
     osc.type = type;
@@ -941,12 +977,12 @@ function playBeep(frequency, duration, type = "sine", gain = 0.25, delay = 0) {
     gn.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + duration);
     osc.start(ctx.currentTime + delay);
     osc.stop(ctx.currentTime + delay + duration + 0.05);
-  } catch(_) {}
+  } catch(e) {}
 }
 
 function soundCorrect() {
   playBeep(660, 0.12, "sine", 0.25, 0);
-  playBeep(880, 0.2,  "sine", 0.25, 0.12);
+  playBeep(880, 0.2, "sine", 0.25, 0.12);
 }
 
 function soundError() {
@@ -964,15 +1000,15 @@ function soundStreak5() {
   playBeep(523, 0.08, "sine", 0.35, 0);
   playBeep(659, 0.08, "sine", 0.35, 0.08);
   playBeep(784, 0.08, "sine", 0.35, 0.16);
-  playBeep(1047,0.08, "sine", 0.35, 0.24);
-  playBeep(1319,0.25, "sine", 0.35, 0.32);
+  playBeep(1047, 0.08, "sine", 0.35, 0.24);
+  playBeep(1319, 0.25, "sine", 0.35, 0.32);
 }
 
 // ===========================================================
 // GAMIFICACIÓN — RACHA
 // ===========================================================
 
-const STREAK_MESSAGES = {
+var STREAK_MESSAGES = {
   3: "🔥 ¡RACHA ×3! ¡Tres seguidas!",
   4: "⚡ ¡RACHA ×4! ¡Imparable!",
   5: "🚀 ¡RACHA ×5! ¡Perfecto!",
@@ -980,25 +1016,28 @@ const STREAK_MESSAGES = {
   7: "🌟 ¡×7 SEGUIDAS! ¡Increíble!",
   8: "👑 ¡×8 SEGUIDAS! ¡Dominando!",
   9: "🏆 ¡×9 SEGUIDAS! ¡Casi perfecto!",
-  10:"⚡🏆 ¡PERFECTO! ¡10/10!"
+  10: "⚡🏆 ¡PERFECTO! ¡10/10!"
 };
 
 function showStreakToast(msg) {
-  const toast = document.getElementById("streak-toast");
+  var toast = document.getElementById("streak-toast");
   toast.textContent = msg;
   toast.classList.add("show");
-  setTimeout(() => toast.classList.remove("show"), 2200);
+  setTimeout(function() {
+    toast.classList.remove("show");
+  }, 2200);
 }
 
 function updateStreakBar() {
-  const bar = document.getElementById("streak-bar");
+  var bar = document.getElementById("streak-bar");
   if (!bar) return;
+  
   if (streak >= 3) {
-    const fires = "🔥".repeat(Math.min(streak, 10));
-    bar.textContent = `${fires} RACHA ACTIVA: ${streak} SEGUIDAS`;
+    var fires = "🔥".repeat(Math.min(streak, 10));
+    bar.textContent = fires + " RACHA ACTIVA: " + streak + " SEGUIDAS";
     bar.style.opacity = "1";
   } else if (streak > 0) {
-    bar.textContent = `⚡ ${streak} correcta${streak > 1 ? "s" : ""} seguida${streak > 1 ? "s" : ""}`;
+    bar.textContent = "⚡ " + streak + " correcta" + (streak > 1 ? "s" : "") + " seguida" + (streak > 1 ? "s" : "");
     bar.style.opacity = "0.6";
   } else {
     bar.textContent = "";
@@ -1018,7 +1057,6 @@ function getMedal(grade, streakMax) {
       label: "Oro Eléctrico — ¡Imparable!",
       sub: "Excelente nota y gran racha de respuestas correctas.",
       color: "#f1c40f",
-      audio: MAXWATT_AUDIO.oro_electrico,
       speech: "¡Oro Eléctrico! ¡Imparable! Lograste una nota sobresaliente y una gran racha. Tu dominio de las Leyes de Kirchhoff está cargado de energía."
     };
   }
@@ -1029,7 +1067,6 @@ function getMedal(grade, streakMax) {
       label: "Oro",
       sub: "Excelente dominio de las Leyes de Kirchhoff.",
       color: "#f1c40f",
-      audio: MAXWATT_AUDIO.oro,
       speech: "¡Medalla de Oro! Lograste una nota sobresaliente. Excelente trabajo aplicando las Leyes de Kirchhoff."
     };
   }
@@ -1040,7 +1077,6 @@ function getMedal(grade, streakMax) {
       label: "Plata Eléctrica",
       sub: "Muy buen resultado y racha destacada.",
       color: "#bdc3c7",
-      audio: MAXWATT_AUDIO.plata_electrica,
       speech: "¡Plata Eléctrica! Muy buen resultado y una racha poderosa. Sigue practicando para llegar al Oro."
     };
   }
@@ -1051,7 +1087,6 @@ function getMedal(grade, streakMax) {
       label: "Plata",
       sub: "Buen manejo del contenido.",
       color: "#bdc3c7",
-      audio: MAXWATT_AUDIO.plata,
       speech: "¡Medalla de Plata! Demostraste buen manejo de los cálculos. Vas por muy buen camino."
     };
   }
@@ -1062,7 +1097,6 @@ function getMedal(grade, streakMax) {
       label: "Bronce Eléctrico",
       sub: "Aprobaste y además lograste una buena racha.",
       color: "#e67e22",
-      audio: MAXWATT_AUDIO.bronce_electrico,
       speech: "¡Bronce Eléctrico! Aprobaste y lograste una buena racha. Refuerza tus errores y podrás subir de nivel."
     };
   }
@@ -1073,7 +1107,6 @@ function getMedal(grade, streakMax) {
       label: "Bronce",
       sub: "Aprobaste. Sigue practicando para mejorar.",
       color: "#e67e22",
-      audio: MAXWATT_AUDIO.bronce,
       speech: "¡Medalla de Bronce! Aprobaste la actividad. Sigue practicando para mejorar tu seguridad y precisión."
     };
   }
@@ -1082,9 +1115,8 @@ function getMedal(grade, streakMax) {
       key: "rayo_casi_lo_tienes",
       icon: "⚡",
       label: "Rayo — casi lo tienes",
-      sub: `No aprobaste aún, pero lograste una racha máxima de ${streakMax}.`,
+      sub: "No aprobaste aún, pero lograste una racha máxima de " + streakMax + ".",
       color: "#9b59b6",
-      audio: MAXWATT_AUDIO.rayo_casi_lo_tienes,
       speech: "¡Rayo! Casi lo tienes. Aunque la nota aún no alcanza, tu racha demuestra que puedes lograrlo. Revisa los errores y vuelve a intentarlo."
     };
   }
@@ -1093,9 +1125,8 @@ function getMedal(grade, streakMax) {
       key: "destello",
       icon: "⚡",
       label: "Destello",
-      sub: `Tuviste momentos buenos: lograste una racha máxima de ${streakMax}.`,
+      sub: "Tuviste momentos buenos: lograste una racha máxima de " + streakMax + ".",
       color: "#9b59b6",
-      audio: MAXWATT_AUDIO.destello,
       speech: "¡Destello! Tuviste momentos buenos y lograste una racha. Con un poco más de práctica podrás aprobar."
     };
   }
@@ -1105,20 +1136,17 @@ function getMedal(grade, streakMax) {
     label: "En camino",
     sub: "La práctica constante te ayudará a mejorar.",
     color: "#777",
-    audio: MAXWATT_AUDIO.en_camino,
     speech: "Estás en camino. No te preocupes: revisa las recomendaciones, practica paso a paso y vuelve a intentarlo."
   };
 }
 
 function medalHtml(grade, streakMax) {
-  const m = getMedal(grade, streakMax);
-  return `
-    <div class="medal-display">
-      <span class="medal-icon">${m.icon}</span>
-      <div class="medal-label" style="color:${m.color};">${m.label}</div>
-      <div class="medal-sub">${m.sub}</div>
-    </div>
-  `;
+  var m = getMedal(grade, streakMax);
+  return '<div class="medal-display">' +
+    '<span class="medal-icon">' + m.icon + '</span>' +
+    '<div class="medal-label" style="color:' + m.color + ';">' + m.label + '</div>' +
+    '<div class="medal-sub">' + m.sub + '</div>' +
+    '</div>';
 }
 
 // ===========================================================
@@ -1126,43 +1154,60 @@ function medalHtml(grade, streakMax) {
 // ===========================================================
 
 function historicCompareHtml(grade) {
-  const records = getStudentRecords(currentStudent);
-  const prev = records.slice(0, -1);
+  var records = getStudentRecords(currentStudent);
+  var prev = records.slice(0, -1);
   if (prev.length === 0) return "";
-  const avg = prev.reduce((s, r) => s + r.nota, 0) / prev.length;
-  const best = Math.max(...prev.map(r => r.nota));
-  const diff = grade - avg;
-  const diffStr = `${diff >= 0 ? "+" : ""}${diff.toFixed(1)}`;
-  let arrowClass, arrowSym, comparison;
+  
+  var sum = 0;
+  for (var i = 0; i < prev.length; i++) {
+    sum += prev[i].nota;
+  }
+  var avg = sum / prev.length;
+  
+  var best = prev[0].nota;
+  for (var i = 1; i < prev.length; i++) {
+    if (prev[i].nota > best) best = prev[i].nota;
+  }
+  
+  var diff = grade - avg;
+  var diffStr = (diff >= 0 ? "+" : "") + diff.toFixed(1);
+  
+  var arrowClass, arrowSym, comparison;
   if (diff > 0.15) {
-    arrowClass = "arrow-up"; arrowSym = "▲";
-    comparison = `Estás <span class="${arrowClass}">${arrowSym} ${diffStr} puntos</span> sobre tu promedio histórico.`;
+    arrowClass = "arrow-up";
+    arrowSym = "▲";
+    comparison = 'Estás <span class="' + arrowClass + '">' + arrowSym + ' ' + diffStr + ' puntos</span> sobre tu promedio histórico.';
   } else if (diff < -0.15) {
-    arrowClass = "arrow-down"; arrowSym = "▼";
-    comparison = `Estás <span class="${arrowClass}">${arrowSym} ${diffStr} puntos</span> bajo tu promedio histórico.`;
+    arrowClass = "arrow-down";
+    arrowSym = "▼";
+    comparison = 'Estás <span class="' + arrowClass + '">' + arrowSym + ' ' + diffStr + ' puntos</span> bajo tu promedio histórico.';
   } else {
     arrowClass = "arrow-same";
-    comparison = `<span class="${arrowClass}">≈ Igual</span> a tu promedio histórico.`;
+    comparison = '<span class="' + arrowClass + '">≈ Igual</span> a tu promedio histórico.';
   }
-  const vsBest = grade >= best
-    ? `🌟 <strong>¡Nueva mejor nota!</strong>`
-    : `Tu mejor nota anterior fue <strong>${best.toFixed(1)}</strong>.`;
-  return `
-    <div class="hist-compare">
-      📊 <strong>Comparación con tu historial</strong> (${prev.length} jugada${prev.length > 1 ? "s" : ""} previas)<br>
-      Promedio anterior: <strong>${avg.toFixed(1)}</strong> — ${comparison}<br>
-      ${vsBest}
-    </div>
-  `;
+  
+  var vsBest = grade >= best
+    ? '🌟 <strong>¡Nueva mejor nota!</strong>'
+    : 'Tu mejor nota anterior fue <strong>' + best.toFixed(1) + '</strong>.';
+  
+  return '<div class="hist-compare">' +
+    '📊 <strong>Comparación con tu historial</strong> (' + prev.length + ' jugada' + (prev.length > 1 ? "s" : "") + ' previas)<br>' +
+    'Promedio anterior: <strong>' + avg.toFixed(1) + '</strong> — ' + comparison + '<br>' +
+    vsBest +
+    '</div>';
 }
 
 function readCurrentQuestion() {
   if (!audioEnabled) return;
-  const q = questions[current];
-  const dataText = q.data
-    .map(d => `${speechifyLabel(d.l)}: ${d.v}`)
-    .join(". ");
-  speak(`Ejercicio ${current + 1} de ${TOTAL_QUESTIONS}. ${q.text}. Datos entregados: ${dataText}. Responde en ${speechifyUnit(q.unit)}.`);
+  var q = questions[current];
+  
+  var dataText = "";
+  for (var i = 0; i < q.data.length; i++) {
+    if (i > 0) dataText += ". ";
+    dataText += speechifyLabel(q.data[i].l) + ": " + q.data[i].v;
+  }
+  
+  speak("Ejercicio " + (current + 1) + " de " + TOTAL_QUESTIONS + ". " + q.text + ". Datos entregados: " + dataText + ". Responde en " + speechifyUnit(q.unit) + ".");
 }
 
 // ===========================================================
@@ -1170,117 +1215,138 @@ function readCurrentQuestion() {
 // ===========================================================
 
 function generateQuestion() {
-  const isSerie = Math.random() > 0.5;
-  const numRes = Math.random() > 0.5 ? 2 : 3;
-  const Vt = Math.floor(Math.random() * 21) + 10;
-  const rs = Array.from({length: numRes}, () => E24[Math.floor(Math.random() * E24.length)]);
+  var isSerie = Math.random() > 0.5;
+  var numRes = Math.random() > 0.5 ? 2 : 3;
+  var Vt = Math.floor(Math.random() * 21) + 10;
+  
+  var rs = [];
+  for (var i = 0; i < numRes; i++) {
+    rs.push(E24[Math.floor(Math.random() * E24.length)]);
+  }
   
   if (isSerie) {
-    const Rt = rs.reduce((a, b) => a + b, 0);
-    const It = Vt / Rt;
-    const subType = Math.floor(Math.random() * 4);
+    var Rt = 0;
+    for (var i = 0; i < rs.length; i++) {
+      Rt += rs[i];
+    }
+    var It = Vt / Rt;
+    var subType = Math.floor(Math.random() * 4);
+    
+    var data = [];
+    for (var i = 0; i < rs.length; i++) {
+      data.push({ l: "R" + (i + 1), v: rs[i], unit: "Ω" });
+    }
+    data.push({ l: "Vt", v: Vt, unit: "V" });
     
     if (subType === 0) {
       return {
         type: "SERIE (LVK)",
         topic: "Resistencia Total",
         text: "Calcule la Resistencia Total (Rt) del circuito en serie.",
-        data: rs.map((r, idx) => ({ l: `R${idx + 1}`, v: r, unit: "Ω" })).concat({ l: "Vt", v: Vt, unit: "V" }),
+        data: data,
         ans: Rt,
         unit: "Ω",
-        raw: { Vt, rs, Rt, It }
+        raw: { Vt: Vt, rs: rs, Rt: Rt, It: It }
       };
     } else if (subType === 1) {
-      const iDisplay = It < 0.1 ? smartRound(It * 1000, 1) : smartRound(It, 3);
-      const iUnit = It < 0.1 ? "mA" : "A";
+      var iDisplay = It < 0.1 ? smartRound(It * 1000, 1) : smartRound(It, 3);
+      var iUnit = It < 0.1 ? "mA" : "A";
       return {
         type: "SERIE (LVK)",
         topic: "Corriente Total",
         text: "Calcule la Corriente Total que circula por el circuito en serie.",
-        data: rs.map((r, idx) => ({ l: `R${idx + 1}`, v: r, unit: "Ω" })).concat({ l: "Vt", v: Vt, unit: "V" }),
+        data: data,
         ans: iDisplay,
         unit: iUnit,
-        raw: { Vt, rs, Rt, It, iDisplay, iUnit }
+        raw: { Vt: Vt, rs: rs, Rt: Rt, It: It, iDisplay: iDisplay, iUnit: iUnit }
       };
     } else if (subType === 2) {
-      const target = Math.floor(Math.random() * numRes);
-      const Vn = It * rs[target];
+      var target = Math.floor(Math.random() * numRes);
+      var Vn = It * rs[target];
       return {
         type: "SERIE (LVK)",
-        topic: `Caída de Voltaje R${target + 1}`,
-        text: `Calcule el voltaje en la resistencia R${target + 1} (caída de voltaje).`,
-        data: rs.map((r, idx) => ({ l: `R${idx + 1}`, v: r, unit: "Ω" })).concat({ l: "Vt", v: Vt, unit: "V" }),
+        topic: "Caída de Voltaje R" + (target + 1),
+        text: "Calcule el voltaje en la resistencia R" + (target + 1) + " (caída de voltaje).",
+        data: data,
         ans: smartRound(Vn, 2),
         unit: "V",
-        raw: { Vt, rs, Rt, It, target, Vn }
+        raw: { Vt: Vt, rs: rs, Rt: Rt, It: It, target: target, Vn: Vn }
       };
     } else {
-      const unknownIdx = Math.floor(Math.random() * numRes);
-      const knowns = rs.filter((_, idx) => idx !== unknownIdx);
-      const iDisplay = smartRound(It * 1000, 1);
+      var unknownIdx = Math.floor(Math.random() * numRes);
+      var iDisplay = smartRound(It * 1000, 1);
       return {
         type: "SERIE (LVK)",
-        topic: `Cálculo de R${unknownIdx + 1}`,
-        text: `Si la corriente total es ${iDisplay} mA, calcule el valor de R${unknownIdx + 1}.`,
-        data: knowns.map((r, idx) => ({ l: `R${idx + 1}`, v: r, unit: "Ω" })).concat({ l: "Vt", v: Vt, unit: "V" }),
+        topic: "Cálculo de R" + (unknownIdx + 1),
+        text: "Si la corriente total es " + iDisplay + " mA, calcule el valor de R" + (unknownIdx + 1) + ".",
+        data: data,
         ans: rs[unknownIdx],
         unit: "Ω",
-        raw: { Vt, rs, Rt, It, unknownIdx, iDisplay }
+        raw: { Vt: Vt, rs: rs, Rt: Rt, It: It, unknownIdx: unknownIdx, iDisplay: iDisplay }
       };
     }
   } else {
-    const Req = 1 / rs.reduce((a, b) => a + (1 / b), 0);
-    const It = Vt / Req;
-    const subType = Math.floor(Math.random() * 4);
+    var invSum = 0;
+    for (var i = 0; i < rs.length; i++) {
+      invSum += (1 / rs[i]);
+    }
+    var Req = 1 / invSum;
+    var It = Vt / Req;
+    var subType = Math.floor(Math.random() * 4);
+    
+    var data = [];
+    for (var i = 0; i < rs.length; i++) {
+      data.push({ l: "R" + (i + 1), v: rs[i], unit: "Ω" });
+    }
+    data.push({ l: "Vt", v: Vt, unit: "V" });
     
     if (subType === 0) {
       return {
         type: "PARALELO (LCK)",
         topic: "Resistencia Equivalente",
         text: "Calcule la Resistencia Equivalente (Req) del circuito en paralelo.",
-        data: rs.map((r, idx) => ({ l: `R${idx + 1}`, v: r, unit: "Ω" })).concat({ l: "Vt", v: Vt, unit: "V" }),
+        data: data,
         ans: smartRound(Req, 2),
         unit: "Ω",
-        raw: { Vt, rs, Req, It }
+        raw: { Vt: Vt, rs: rs, Req: Req, It: It }
       };
     } else if (subType === 1) {
-      const iDisplay = It < 0.1 ? smartRound(It * 1000, 1) : smartRound(It, 2);
-      const iUnit = It < 0.1 ? "mA" : "A";
+      var iDisplay = It < 0.1 ? smartRound(It * 1000, 1) : smartRound(It, 2);
+      var iUnit = It < 0.1 ? "mA" : "A";
       return {
         type: "PARALELO (LCK)",
         topic: "Corriente Total",
         text: "Calcule la Corriente Total que entrega la fuente en el circuito paralelo.",
-        data: rs.map((r, idx) => ({ l: `R${idx + 1}`, v: r, unit: "Ω" })).concat({ l: "Vt", v: Vt, unit: "V" }),
+        data: data,
         ans: iDisplay,
         unit: iUnit,
-        raw: { Vt, rs, Req, It, iDisplay, iUnit }
+        raw: { Vt: Vt, rs: rs, Req: Req, It: It, iDisplay: iDisplay, iUnit: iUnit }
       };
     } else if (subType === 2) {
-      const target = Math.floor(Math.random() * numRes);
-      const In = Vt / rs[target];
-      const iUnit = In < 0.1 ? "mA" : "A";
-      const iVal = In < 0.1 ? smartRound(In * 1000, 1) : smartRound(In, 2);
+      var target = Math.floor(Math.random() * numRes);
+      var In = Vt / rs[target];
+      var iUnit = In < 0.1 ? "mA" : "A";
+      var iVal = In < 0.1 ? smartRound(In * 1000, 1) : smartRound(In, 2);
       return {
         type: "PARALELO (LCK)",
-        topic: `Corriente por R${target + 1}`,
-        text: `Calcule la corriente que circula por la resistencia R${target + 1}.`,
-        data: rs.map((r, idx) => ({ l: `R${idx + 1}`, v: r, unit: "Ω" })).concat({ l: "Vt", v: Vt, unit: "V" }),
+        topic: "Corriente por R" + (target + 1),
+        text: "Calcule la corriente que circula por la resistencia R" + (target + 1) + ".",
+        data: data,
         ans: iVal,
         unit: iUnit,
-        raw: { Vt, rs, Req, It, target, In, iVal, iUnit }
+        raw: { Vt: Vt, rs: rs, Req: Req, It: It, target: target, In: In, iVal: iVal, iUnit: iUnit }
       };
     } else {
-      const unknownIdx = Math.floor(Math.random() * numRes);
-      const knowns = rs.filter((_, idx) => idx !== unknownIdx);
-      const iDisplay = smartRound(It * 1000, 1);
+      var unknownIdx = Math.floor(Math.random() * numRes);
+      var iDisplay = smartRound(It * 1000, 1);
       return {
         type: "PARALELO (LCK)",
-        topic: `Cálculo de R${unknownIdx + 1}`,
-        text: `Si la corriente total es ${iDisplay} mA, calcule el valor de R${unknownIdx + 1}.`,
-        data: knowns.map((r, idx) => ({ l: `R${idx + 1}`, v: r, unit: "Ω" })).concat({ l: "Vt", v: Vt, unit: "V" }),
+        topic: "Cálculo de R" + (unknownIdx + 1),
+        text: "Si la corriente total es " + iDisplay + " mA, calcule el valor de R" + (unknownIdx + 1) + ".",
+        data: data,
         ans: rs[unknownIdx],
         unit: "Ω",
-        raw: { Vt, rs, Req, It, unknownIdx, iDisplay }
+        raw: { Vt: Vt, rs: rs, Req: Req, It: It, unknownIdx: unknownIdx, iDisplay: iDisplay }
       };
     }
   }
@@ -1291,144 +1357,145 @@ function generateQuestion() {
 // ===========================================================
 
 function generarRetroalimentacion(q, userAns) {
-  const userText = `Tu respuesta fue: ${userAns} ${q.unit}`;
-  let formula = "";
-  let desarrollo = "";
-  let explicacion = "";
-  let advertencia = "";
+  var userText = "Tu respuesta fue: " + userAns + " " + q.unit;
+  var formula = "";
+  var desarrollo = "";
+  var explicacion = "";
+  var advertencia = "";
   
   if (q.type === "SERIE (LVK)") {
     if (q.topic === "Resistencia Total") {
       formula = "Rt = R1 + R2 + R3 + ...";
-      desarrollo = `
-        <strong>Datos entregados:</strong><br>
-        ${q.raw.rs.map((r, i) => `R${i + 1} = ${r} Ω`).join("<br>")}<br><br>
-        <strong>Aplicación de la fórmula:</strong><br>
-        Rt = ${q.raw.rs.join(" + ")}<br>
-        Rt = ${q.ans} Ω
-      `;
+      var rsList = "";
+      for (var i = 0; i < q.raw.rs.length; i++) {
+        rsList += "R" + (i + 1) + " = " + q.raw.rs[i] + " Ω<br>";
+      }
+      desarrollo = "<strong>Datos entregados:</strong><br>" + rsList + "<br>" +
+        "<strong>Aplicación de la fórmula:</strong><br>" +
+        "Rt = " + q.raw.rs.join(" + ") + "<br>" +
+        "Rt = " + q.ans + " Ω";
       explicacion = "En circuitos en serie, la resistencia total es la suma de todas las resistencias individuales.";
       advertencia = "Asegúrate de sumar todas las resistencias, no solo las que tienen índices consecutivos.";
     } else if (q.topic === "Corriente Total") {
       formula = "I = V / Rt";
-      desarrollo = `
-        <strong>Datos entregados:</strong><br>
-        Vt = ${q.raw.Vt} V<br>
-        Rt = ${q.raw.Rt} Ω<br><br>
-        <strong>Aplicación de la Ley de Ohm:</strong><br>
-        I = Vt / Rt<br>
-        I = ${q.raw.Vt} / ${q.raw.Rt}<br>
-        I = ${smartFormat(q.raw.It, 4)} A<br><br>
-        <strong>Expresión final:</strong><br>
-        I = ${q.ans} ${q.unit}
-      `;
+      desarrollo = "<strong>Datos entregados:</strong><br>" +
+        "Vt = " + q.raw.Vt + " V<br>" +
+        "Rt = " + q.raw.Rt + " Ω<br><br>" +
+        "<strong>Aplicación de la Ley de Ohm:</strong><br>" +
+        "I = Vt / Rt<br>" +
+        "I = " + q.raw.Vt + " / " + q.raw.Rt + "<br>" +
+        "I = " + smartFormat(q.raw.It, 4) + " A<br><br>" +
+        "<strong>Expresión final:</strong><br>" +
+        "I = " + q.ans + " " + q.unit;
       explicacion = "La corriente total en un circuito serie se calcula dividiendo el voltaje total entre la resistencia total.";
       advertencia = "Si el resultado es menor a 0.1 A, conviértelo a mA multiplicando por 1000.";
-    } else if (q.topic.startsWith("Caída de Voltaje")) {
+    } else if (q.topic.indexOf("Caída de Voltaje") === 0) {
       formula = "Vn = I × Rn";
-      desarrollo = `
-        <strong>Datos entregados:</strong><br>
-        Corriente total I = ${smartFormat(q.raw.It, 4)} A<br>
-        R${q.raw.target + 1} = ${q.raw.rs[q.raw.target]} Ω<br><br>
-        <strong>Aplicación:</strong><br>
-        V${q.raw.target + 1} = I × R${q.raw.target + 1}<br>
-        V${q.raw.target + 1} = ${smartFormat(q.raw.It, 4)} × ${q.raw.rs[q.raw.target]}<br>
-        V${q.raw.target + 1} = ${q.ans} V
-      `;
+      desarrollo = "<strong>Datos entregados:</strong><br>" +
+        "Corriente total I = " + smartFormat(q.raw.It, 4) + " A<br>" +
+        "R" + (q.raw.target + 1) + " = " + q.raw.rs[q.raw.target] + " Ω<br><br>" +
+        "<strong>Aplicación:</strong><br>" +
+        "V" + (q.raw.target + 1) + " = I × R" + (q.raw.target + 1) + "<br>" +
+        "V" + (q.raw.target + 1) + " = " + smartFormat(q.raw.It, 4) + " × " + q.raw.rs[q.raw.target] + "<br>" +
+        "V" + (q.raw.target + 1) + " = " + q.ans + " V";
       explicacion = "El voltaje en una resistencia específica se calcula multiplicando la corriente total por el valor de esa resistencia (Ley de Ohm).";
       advertencia = "Recuerda que en serie la corriente es la misma en todas las resistencias.";
     } else {
       formula = "R_desconocida = (Vt / I) - R_conocidas";
-      const sumKnown = q.raw.rs.reduce((a, b, i) => i !== q.raw.unknownIdx ? a + b : a, 0);
-      desarrollo = `
-        <strong>Datos entregados:</strong><br>
-        Vt = ${q.raw.Vt} V<br>
-        I = ${q.raw.iDisplay} mA = ${smartFormat(q.raw.It, 4)} A<br>
-        Resistencias conocidas: ${sumKnown} Ω<br><br>
-        <strong>Pasos:</strong><br>
-        1. Calcular Rt = Vt / I = ${q.raw.Vt} / ${smartFormat(q.raw.It, 4)} = ${q.raw.Rt} Ω<br>
-        2. R${q.raw.unknownIdx + 1} = Rt - R_conocidas = ${q.raw.Rt} - ${sumKnown}<br>
-        3. R${q.raw.unknownIdx + 1} = ${q.ans} Ω
-      `;
+      var sumKnown = 0;
+      for (var i = 0; i < q.raw.rs.length; i++) {
+        if (i !== q.raw.unknownIdx) sumKnown += q.raw.rs[i];
+      }
+      desarrollo = "<strong>Datos entregados:</strong><br>" +
+        "Vt = " + q.raw.Vt + " V<br>" +
+        "I = " + q.raw.iDisplay + " mA = " + smartFormat(q.raw.It, 4) + " A<br>" +
+        "Resistencias conocidas: " + sumKnown + " Ω<br><br>" +
+        "<strong>Pasos:</strong><br>" +
+        "1. Calcular Rt = Vt / I = " + q.raw.Vt + " / " + smartFormat(q.raw.It, 4) + " = " + q.raw.Rt + " Ω<br>" +
+        "2. R" + (q.raw.unknownIdx + 1) + " = Rt - R_conocidas = " + q.raw.Rt + " - " + sumKnown + "<br>" +
+        "3. R" + (q.raw.unknownIdx + 1) + " = " + q.ans + " Ω";
       explicacion = "Para encontrar una resistencia desconocida, calcula Rt con la Ley de Ohm y resta las resistencias conocidas.";
       advertencia = "Convierte siempre la corriente a Amperes antes de dividir.";
     }
   } else {
     if (q.topic === "Resistencia Equivalente") {
       formula = "1/Req = 1/R1 + 1/R2 + 1/R3 + ...";
-      const invSum = q.raw.rs.reduce((a, b) => a + (1/b), 0);
-      desarrollo = `
-        <strong>Datos entregados:</strong><br>
-        ${q.raw.rs.map((r, i) => `R${i + 1} = ${r} Ω`).join("<br>")}<br><br>
-        <strong>Aplicación:</strong><br>
-        1/Req = ${q.raw.rs.map(r => `1/${r}`).join(" + ")}<br>
-        1/Req = ${smartFormat(invSum, 6)}<br>
-        Req = ${q.ans} Ω
-      `;
+      var invTerms = "";
+      for (var i = 0; i < q.raw.rs.length; i++) {
+        invTerms += "1/" + q.raw.rs[i];
+        if (i < q.raw.rs.length - 1) invTerms += " + ";
+      }
+      var invSum = 0;
+      for (var i = 0; i < q.raw.rs.length; i++) {
+        invSum += (1 / q.raw.rs[i]);
+      }
+      desarrollo = "<strong>Datos entregados:</strong><br>";
+      for (var i = 0; i < q.raw.rs.length; i++) {
+        desarrollo += "R" + (i + 1) + " = " + q.raw.rs[i] + " Ω<br>";
+      }
+      desarrollo += "<br><strong>Aplicación:</strong><br>" +
+        "1/Req = " + invTerms + "<br>" +
+        "1/Req = " + smartFormat(invSum, 6) + "<br>" +
+        "Req = " + q.ans + " Ω";
       explicacion = "En paralelo, el inverso de la resistencia equivalente es la suma de los inversos de cada resistencia.";
       advertencia = "No sumes directamente las resistencias; debes sumar sus inversos.";
     } else if (q.topic === "Corriente Total") {
       formula = "I = V / Req";
-      desarrollo = `
-        <strong>Datos entregados:</strong><br>
-        Vt = ${q.raw.Vt} V<br>
-        Req = ${smartFormat(q.raw.Req, 2)} Ω<br><br>
-        <strong>Aplicación:</strong><br>
-        I = Vt / Req<br>
-        I = ${q.raw.Vt} / ${smartFormat(q.raw.Req, 2)}<br>
-        I = ${smartFormat(q.raw.It, 4)} A = ${q.ans} ${q.unit}
-      `;
+      desarrollo = "<strong>Datos entregados:</strong><br>" +
+        "Vt = " + q.raw.Vt + " V<br>" +
+        "Req = " + smartFormat(q.raw.Req, 2) + " Ω<br><br>" +
+        "<strong>Aplicación:</strong><br>" +
+        "I = Vt / Req<br>" +
+        "I = " + q.raw.Vt + " / " + smartFormat(q.raw.Req, 2) + "<br>" +
+        "I = " + smartFormat(q.raw.It, 4) + " A = " + q.ans + " " + q.unit;
       explicacion = "La corriente total se calcula dividiendo el voltaje entre la resistencia equivalente.";
       advertencia = "Asegúrate de usar Req (paralelo), no la suma directa de resistencias.";
-    } else if (q.topic.startsWith("Corriente por R")) {
+    } else if (q.topic.indexOf("Corriente por R") === 0) {
       formula = "In = Vt / Rn";
-      desarrollo = `
-        <strong>Datos entregados:</strong><br>
-        Vt = ${q.raw.Vt} V<br>
-        R${q.raw.target + 1} = ${q.raw.rs[q.raw.target]} Ω<br><br>
-        <strong>Aplicación:</strong><br>
-        I${q.raw.target + 1} = Vt / R${q.raw.target + 1}<br>
-        I${q.raw.target + 1} = ${q.raw.Vt} / ${q.raw.rs[q.raw.target]}<br>
-        I${q.raw.target + 1} = ${smartFormat(q.raw.In, 4)} A = ${q.ans} ${q.unit}
-      `;
+      desarrollo = "<strong>Datos entregados:</strong><br>" +
+        "Vt = " + q.raw.Vt + " V<br>" +
+        "R" + (q.raw.target + 1) + " = " + q.raw.rs[q.raw.target] + " Ω<br><br>" +
+        "<strong>Aplicación:</strong><br>" +
+        "I" + (q.raw.target + 1) + " = Vt / R" + (q.raw.target + 1) + "<br>" +
+        "I" + (q.raw.target + 1) + " = " + q.raw.Vt + " / " + q.raw.rs[q.raw.target] + "<br>" +
+        "I" + (q.raw.target + 1) + " = " + smartFormat(q.raw.In, 4) + " A = " + q.ans + " " + q.unit;
       explicacion = "En paralelo, el voltaje es el mismo en todas las ramas. La corriente por una resistencia es Vt dividido por esa resistencia.";
       advertencia = "No uses Req aquí; usa el valor individual de la resistencia consultada.";
     } else {
       formula = "1/R_desconocida = 1/Req - 1/R_conocidas";
-      const sumInvKnown = q.raw.rs.reduce((a, b, i) => i !== q.raw.unknownIdx ? a + (1/b) : a, 0);
-      desarrollo = `
-        <strong>Datos entregados:</strong><br>
-        Vt = ${q.raw.Vt} V<br>
-        It = ${q.raw.iDisplay} mA = ${smartFormat(q.raw.It, 4)} A<br><br>
-        <strong>Pasos:</strong><br>
-        1. Calcular Req = Vt / It = ${smartFormat(q.raw.Req, 2)} Ω<br>
-        2. 1/R${q.raw.unknownIdx + 1} = 1/Req - Σ(1/R_conocidas)<br>
-        3. R${q.raw.unknownIdx + 1} = ${q.ans} Ω
-      `;
+      var sumInvKnown = 0;
+      for (var i = 0; i < q.raw.rs.length; i++) {
+        if (i !== q.raw.unknownIdx) sumInvKnown += (1 / q.raw.rs[i]);
+      }
+      desarrollo = "<strong>Datos entregados:</strong><br>" +
+        "Vt = " + q.raw.Vt + " V<br>" +
+        "It = " + q.raw.iDisplay + " mA = " + smartFormat(q.raw.It, 4) + " A<br><br>" +
+        "<strong>Pasos:</strong><br>" +
+        "1. Calcular Req = Vt / It = " + smartFormat(q.raw.Req, 2) + " Ω<br>" +
+        "2. 1/R" + (q.raw.unknownIdx + 1) + " = 1/Req - Σ(1/R_conocidas)<br>" +
+        "3. R" + (q.raw.unknownIdx + 1) + " = " + q.ans + " Ω";
       explicacion = "Encuentra Req con Vt e It, luego despeja la resistencia desconocida de la fórmula de paralelo.";
       advertencia = "Recuerda que en paralelo se suman los inversos, no las resistencias directamente.";
     }
   }
   
-  return `
-    <strong>Respuesta incorrecta.</strong><br><br>
-    ${userText}<br><br>
-    <strong>Fórmula correcta:</strong> ${formula}<br><br>
-    ${desarrollo}<br><br>
-    <strong>Resultado correcto:</strong> ${smartFormat(q.ans)} ${q.unit}<br><br>
-    <strong>Retroalimentación:</strong><br>
-    ${explicacion}<br><br>
-    <strong>Revisa especialmente:</strong><br>
-    ${advertencia}
-  `;
+  return "<strong>Respuesta incorrecta.</strong><br><br>" +
+    userText + "<br><br>" +
+    "<strong>Fórmula correcta:</strong> " + formula + "<br><br>" +
+    desarrollo + "<br><br>" +
+    "<strong>Resultado correcto:</strong> " + smartFormat(q.ans) + " " + q.unit + "<br><br>" +
+    "<strong>Retroalimentación:</strong><br>" +
+    explicacion + "<br><br>" +
+    "<strong>Revisa especialmente:</strong><br>" +
+    advertencia;
 }
 
 function getRecommendations(errorsObj) {
-  const totalErrors = errorsObj.serie + errorsObj.paralelo;
+  var totalErrors = errorsObj.serie + errorsObj.paralelo;
   if (totalErrors === 0) {
     return "Excelente desempeño. Se recomienda continuar practicando con circuitos mixtos y análisis de mallas.";
   }
-  let recommendations = [];
+  var recommendations = [];
   if (errorsObj.serie > 0) {
     recommendations.push("Repasar circuitos en serie: suma de resistencias y división de voltaje.");
   }
@@ -1436,16 +1503,20 @@ function getRecommendations(errorsObj) {
     recommendations.push("Repasar circuitos en paralelo: inversos de resistencias y división de corriente.");
   }
   recommendations.push("Bibliografía sugerida: Boylestad - Introducción al Análisis de Circuitos");
-  return recommendations.map(item => `• ${item}`).join("<br>");
+  
+  var result = "";
+  for (var i = 0; i < recommendations.length; i++) {
+    result += "• " + recommendations[i];
+    if (i < recommendations.length - 1) result += "<br>";
+  }
+  return result;
 }
 
 function errorSummaryHtml(errorsObj) {
-  return `
-    <ul style="margin-left:1.2rem; line-height:1.6;">
-      <li>Errores en circuitos Serie: <strong>${errorsObj.serie}</strong></li>
-      <li>Errores en circuitos Paralelo: <strong>${errorsObj.paralelo}</strong></li>
-    </ul>
-  `;
+  return '<ul style="margin-left:1.2rem; line-height:1.6;">' +
+    '<li>Errores en circuitos Serie: <strong>' + errorsObj.serie + '</strong></li>' +
+    '<li>Errores en circuitos Paralelo: <strong>' + errorsObj.paralelo + '</strong></li>' +
+    '</ul>';
 }
 
 // ===========================================================
@@ -1453,7 +1524,7 @@ function errorSummaryHtml(errorsObj) {
 // ===========================================================
 
 function startQuiz() {
-  const nameInput = document.getElementById("student-name").value;
+  var nameInput = document.getElementById("student-name").value;
   currentStudent = normalizeName(nameInput);
   audioEnabled = false;
   updateAudioToggleUI();
@@ -1468,9 +1539,9 @@ function startQuiz() {
   score = 0;
   streak = 0;
   maxStreak = 0;
-  errors = resetErrorCounter();
+  errors = { serie: 0, paralelo: 0 };
 
-  for (let i = 0; i < TOTAL_QUESTIONS; i++) {
+  for (var i = 0; i < TOTAL_QUESTIONS; i++) {
     questions.push(generateQuestion());
   }
 
@@ -1481,10 +1552,10 @@ function startQuiz() {
 }
 
 function renderQuestion() {
-  const q = questions[current];
+  var q = questions[current];
   answeredCurrentQuestion = false;
 
-  document.getElementById("q-num").textContent = `EJERCICIO ${current + 1} / ${TOTAL_QUESTIONS}`;
+  document.getElementById("q-num").textContent = "EJERCICIO " + (current + 1) + " / " + TOTAL_QUESTIONS;
   document.getElementById("q-type").textContent = q.type;
   document.getElementById("question-text").textContent = q.text;
   document.getElementById("unit-display").textContent = q.unit;
@@ -1493,17 +1564,21 @@ function renderQuestion() {
   document.getElementById("btn-submit").classList.remove("hidden");
   document.getElementById("btn-next").classList.add("hidden");
 
-  const chips = document.getElementById("data-chips");
-  chips.innerHTML = q.data.map(d => `
-    <div class="data-chip">
-      <div style="font-size:0.7rem; color:var(--inacap-red); text-transform:uppercase;">${d.l}</div>
-      <div class="dc-value">${smartFormat(d.v)} ${d.unit}</div>
-    </div>
-  `).join("");
+  var chips = document.getElementById("data-chips");
+  var chipsHtml = "";
+  for (var i = 0; i < q.data.length; i++) {
+    chipsHtml += '<div class="data-chip">' +
+      '<div style="font-size:0.7rem; color:var(--inacap-red); text-transform:uppercase;">' + q.data[i].l + '</div>' +
+      '<div class="dc-value">' + smartFormat(q.data[i].v) + ' ' + q.data[i].unit + '</div>' +
+      '</div>';
+  }
+  chips.innerHTML = chipsHtml;
 
   updateStreakBar();
 
-  if (audioEnabled) setTimeout(readCurrentQuestion, 500);
+  if (audioEnabled) {
+    setTimeout(readCurrentQuestion, 500);
+  }
 }
 
 // ===========================================================
@@ -1513,25 +1588,22 @@ function renderQuestion() {
 function submitAnswer() {
   if (answeredCurrentQuestion) return;
 
-  const input = document.getElementById("answer-input").value.trim();
-  const userAns = parseFloat(input);
-  const q = questions[current];
-  const fb = document.getElementById("feedback");
+  var input = document.getElementById("answer-input").value.trim();
+  var userAns = parseFloat(input);
+  var q = questions[current];
+  var fb = document.getElementById("feedback");
 
   if (input === "" || isNaN(userAns)) {
     fb.style.display = "block";
     fb.style.background = "rgba(226,35,26,0.2)";
     fb.style.color = "#ff4444";
-    fb.innerHTML = `
-      <strong>Respuesta no válida.</strong><br><br>
-      Debes ingresar un número antes de validar la respuesta.
-    `;
+    fb.innerHTML = "<strong>Respuesta no válida.</strong><br><br>Debes ingresar un número antes de validar la respuesta.";
     speak("Respuesta no válida. Debes ingresar un número antes de validar.");
     return;
   }
 
-  const tolerance = Math.max(Math.abs(q.ans) * 0.05, 0.1);
-  const isCorrect = Math.abs(userAns - q.ans) <= tolerance;
+  var tolerance = Math.max(Math.abs(q.ans) * 0.05, 0.1);
+  var isCorrect = Math.abs(userAns - q.ans) <= tolerance;
 
   if (isCorrect) {
     score++;
@@ -1559,8 +1631,11 @@ function submitAnswer() {
     fb.style.display = "none";
     speak("Respuesta correcta.");
   } else {
-    if (q.type === "SERIE (LVK)") errors.serie++;
-    else errors.paralelo++;
+    if (q.type === "SERIE (LVK)") {
+      errors.serie++;
+    } else {
+      errors.paralelo++;
+    }
     streak = 0;
 
     soundError();
@@ -1570,7 +1645,7 @@ function submitAnswer() {
     fb.style.color = "#ff4444";
     fb.innerHTML = generarRetroalimentacion(q, userAns);
 
-    speak(`Respuesta incorrecta. El resultado correcto es ${smartFormat(q.ans)} ${q.unit}. Revisa la retroalimentación en pantalla.`);
+    speak("Respuesta incorrecta. El resultado correcto es " + smartFormat(q.ans) + " " + q.unit + ". Revisa la retroalimentación en pantalla.");
   }
 
   updateStreakBar();
@@ -1591,74 +1666,69 @@ function nextQuestion() {
 }
 
 function resultAvatarHtml(grade, streakMax) {
-  const medal = getMedal(grade, streakMax);
-  const strongResult = grade >= 5;
-  const img = strongResult ? MAXWATT_CELEBRATE_IMG : MAXWATT_MOTIVATE_IMG;
-  const title = `${medal.icon} ${medal.label}`;
-  const message = medal.speech;
+  var medal = getMedal(grade, streakMax);
+  var strongResult = grade >= 5;
+  var img = strongResult ? MAXWATT_CELEBRATE_IMG : MAXWATT_MOTIVATE_IMG;
+  var title = medal.icon + " " + medal.label;
+  var message = medal.speech;
 
-  return `
-    <div class="avatar-layout">
-      <div class="avatar-img-wrap">
-        <img class="avatar-img dynamic" src="${img}" alt="Avatar MaxWatt en pantalla de resultados">
-      </div>
-      <div class="speech-bubble">
-        <div class="speech-title">${title}</div>
-        <p>${message}</p>
-      </div>
-    </div>
-  `;
+  return '<div class="avatar-layout">' +
+    '<div class="avatar-img-wrap">' +
+    '<img class="avatar-img dynamic" src="' + img + '" alt="Avatar MaxWatt en pantalla de resultados" onerror="this.style.display=\'none\'">' +
+    '</div>' +
+    '<div class="speech-bubble">' +
+    '<div class="speech-title">' + title + '</div>' +
+    '<p>' + message + '</p>' +
+    '</div>' +
+    '</div>';
 }
 
 function speakResultAvatar(grade, streakMax) {
-  const medal = getMedal(grade, streakMax);
-  playMaxWattAudio(medal.audio, medal.speech);
+  var medal = getMedal(grade, streakMax);
+  speakAvatar(medal.speech);
 }
 
 function showResults() {
   hideAllScreens();
   document.getElementById("screen-results").classList.remove("hidden");
 
-  const percentage = Math.round((score / TOTAL_QUESTIONS) * 100);
-  const grade = calculateGrade(score, TOTAL_QUESTIONS);
-  const status = grade >= 4 ? "Aprobado" : "No aprobado";
-  const record = saveCurrentPlay(percentage, grade, status);
+  var percentage = Math.round((score / TOTAL_QUESTIONS) * 100);
+  var grade = calculateGrade(score, TOTAL_QUESTIONS);
+  var status = grade >= 4 ? "Aprobado" : "No aprobado";
+  var record = saveCurrentPlay(percentage, grade, status);
 
   document.getElementById("avatar-result").innerHTML = resultAvatarHtml(grade, maxStreak);
   document.getElementById("nota-display").textContent = grade.toFixed(1);
   document.getElementById("res-stats").textContent =
-    `${currentStudent}, lograste ${score} de ${TOTAL_QUESTIONS} respuestas correctas. Porcentaje de logro: ${percentage}%. Estado: ${status}.`;
+    currentStudent + ", lograste " + score + " de " + TOTAL_QUESTIONS + " respuestas correctas. Porcentaje de logro: " + percentage + "%. Estado: " + status + ".";
 
-  const compareHtml = historicCompareHtml(grade);
+  var compareHtml = historicCompareHtml(grade);
 
-  document.getElementById("result-detail").innerHTML = `
-    ${medalHtml(grade, maxStreak)}
+  document.getElementById("result-detail").innerHTML =
+    medalHtml(grade, maxStreak) +
+    compareHtml +
+    '<div class="stats-grid">' +
+    '<div class="stat-box">' +
+    '<div class="stat-title">Correctas</div>' +
+    '<div class="stat-value">' + score + '/' + TOTAL_QUESTIONS + '</div>' +
+    '</div>' +
+    '<div class="stat-box">' +
+    '<div class="stat-title">Logro</div>' +
+    '<div class="stat-value">' + percentage + '%</div>' +
+    '</div>' +
+    '<div class="stat-box">' +
+    '<div class="stat-title">Racha máx.</div>' +
+    '<div class="stat-value">' + (maxStreak > 0 ? "🔥 " : "") + maxStreak + '</div>' +
+    '</div>' +
+    '</div>' +
+    '<h3 class="section-title">Fallas frecuentes de esta jugada</h3>' +
+    errorSummaryHtml(errors) +
+    '<h3 class="section-title">Recomendaciones de estudio</h3>' +
+    '<p class="small-text">' + getRecommendations(errors) + '</p>';
 
-    ${compareHtml}
-
-    <div class="stats-grid">
-      <div class="stat-box">
-        <div class="stat-title">Correctas</div>
-        <div class="stat-value">${score}/${TOTAL_QUESTIONS}</div>
-      </div>
-      <div class="stat-box">
-        <div class="stat-title">Logro</div>
-        <div class="stat-value">${percentage}%</div>
-      </div>
-      <div class="stat-box">
-        <div class="stat-title">Racha máx.</div>
-        <div class="stat-value">${maxStreak > 0 ? "🔥 " : ""}${maxStreak}</div>
-      </div>
-    </div>
-
-    <h3 class="section-title">Fallas frecuentes de esta jugada</h3>
-    ${errorSummaryHtml(errors)}
-
-    <h3 class="section-title">Recomendaciones de estudio</h3>
-    <p class="small-text">${getRecommendations(errors)}</p>
-  `;
-
-  setTimeout(() => speakResultAvatar(grade, maxStreak), 700);
+  setTimeout(function() {
+    speakResultAvatar(grade, maxStreak);
+  }, 700);
 }
 
 // ===========================================================
@@ -1666,10 +1736,10 @@ function showResults() {
 // ===========================================================
 
 function getHistory() {
-  const raw = localStorage.getItem(STORAGE_KEY);
+  var raw = localStorage.getItem(STORAGE_KEY);
   if (!raw) return [];
   try {
-    const data = JSON.parse(raw);
+    var data = JSON.parse(raw);
     return Array.isArray(data) ? data : [];
   } catch (error) {
     return [];
@@ -1681,16 +1751,27 @@ function setHistory(history) {
 }
 
 function getStudentRecords(studentName) {
-  const history = getHistory();
-  return history.filter(item => item.nombre.toLowerCase() === studentName.toLowerCase());
+  var history = getHistory();
+  var records = [];
+  for (var i = 0; i < history.length; i++) {
+    if (history[i].nombre.toLowerCase() === studentName.toLowerCase()) {
+      records.push(history[i]);
+    }
+  }
+  return records;
 }
 
 function saveCurrentPlay(percentage, grade, status) {
-  const history = getHistory();
-  const studentRecords = history.filter(item => item.nombre.toLowerCase() === currentStudent.toLowerCase());
-  const playNumber = studentRecords.length + 1;
+  var history = getHistory();
+  var studentRecords = [];
+  for (var i = 0; i < history.length; i++) {
+    if (history[i].nombre.toLowerCase() === currentStudent.toLowerCase()) {
+      studentRecords.push(history[i]);
+    }
+  }
+  var playNumber = studentRecords.length + 1;
 
-  const record = {
+  var record = {
     nombre: currentStudent,
     fecha: new Date().toLocaleString("es-CL"),
     timestamp: Date.now(),
@@ -1701,12 +1782,18 @@ function saveCurrentPlay(percentage, grade, status) {
     nota: grade,
     estado: status,
     rachaMaxima: maxStreak,
-    errores: { ...errors }
+    errores: { serie: errors.serie, paralelo: errors.paralelo }
   };
 
   history.push(record);
   setHistory(history);
-  return { ...record, playNumber };
+  
+  var result = {};
+  for (var key in record) {
+    result[key] = record[key];
+  }
+  result.playNumber = playNumber;
+  return result;
 }
 
 // ===========================================================
@@ -1714,8 +1801,8 @@ function saveCurrentPlay(percentage, grade, status) {
 // ===========================================================
 
 function showStudentProgressFromWelcome() {
-  const nameInput = document.getElementById("student-name").value;
-  const name = normalizeName(nameInput);
+  var nameInput = document.getElementById("student-name").value;
+  var name = normalizeName(nameInput);
 
   if (name.length < 2) {
     alert("Ingrese primero el nombre o usuario para consultar el progreso.");
@@ -1736,74 +1823,72 @@ function showMyProgress() {
   hideAllScreens();
   document.getElementById("screen-progress").classList.remove("hidden");
 
-  const records = getStudentRecords(currentStudent).sort((a, b) => a.timestamp - b.timestamp);
-  const content = document.getElementById("progress-content");
+  var records = getStudentRecords(currentStudent);
+  records.sort(function(a, b) { return a.timestamp - b.timestamp; });
+  
+  var content = document.getElementById("progress-content");
 
   if (records.length === 0) {
-    content.innerHTML = `<p class="small-text">No hay jugadas registradas para ${escapeHtml(currentStudent)}.</p>`;
+    content.innerHTML = '<p class="small-text">No hay jugadas registradas para ' + escapeHtml(currentStudent) + '.</p>';
     return;
   }
 
-  const best = Math.max(...records.map(r => r.nota));
-  const avg = records.reduce((sum, r) => sum + r.nota, 0) / records.length;
-  const last = records[records.length - 1].nota;
-  const improvement = calculateImprovement(records);
+  var best = records[0].nota;
+  for (var i = 1; i < records.length; i++) {
+    if (records[i].nota > best) best = records[i].nota;
+  }
+  
+  var sum = 0;
+  for (var i = 0; i < records.length; i++) {
+    sum += records[i].nota;
+  }
+  var avg = sum / records.length;
+  
+  var last = records[records.length - 1].nota;
+  var improvement = calculateImprovement(records);
 
-  content.innerHTML = `
-    <div class="stats-grid">
-      <div class="stat-box">
-        <div class="stat-title">Jugadas</div>
-        <div class="stat-value">${records.length}</div>
-      </div>
-      <div class="stat-box">
-        <div class="stat-title">Promedio</div>
-        <div class="stat-value">${avg.toFixed(1)}</div>
-      </div>
-      <div class="stat-box">
-        <div class="stat-title">Mejor nota</div>
-        <div class="stat-value">${best.toFixed(1)}</div>
-      </div>
-    </div>
-
-    <p class="small-text">
-      Última nota: <strong>${last.toFixed(1)}</strong>.
-      ${improvement !== null ? `Mejora comparando primeras 3 y últimas 3 jugadas: <strong>${improvement >= 0 ? "+" : ""}${improvement.toFixed(1)}</strong> puntos.` : "Para calcular superación se requieren al menos 6 jugadas."}
-    </p>
-
-    <h3 class="section-title">Historial de jugadas</h3>
-    ${recordsTable(records)}
-  `;
+  content.innerHTML =
+    '<div class="stats-grid">' +
+    '<div class="stat-box">' +
+    '<div class="stat-title">Jugadas</div>' +
+    '<div class="stat-value">' + records.length + '</div>' +
+    '</div>' +
+    '<div class="stat-box">' +
+    '<div class="stat-title">Promedio</div>' +
+    '<div class="stat-value">' + avg.toFixed(1) + '</div>' +
+    '</div>' +
+    '<div class="stat-box">' +
+    '<div class="stat-title">Mejor nota</div>' +
+    '<div class="stat-value">' + best.toFixed(1) + '</div>' +
+    '</div>' +
+    '</div>' +
+    '<p class="small-text">' +
+    'Última nota: <strong>' + last.toFixed(1) + '</strong>. ' +
+    (improvement !== null ? 'Mejora comparando primeras 3 y últimas 3 jugadas: <strong>' + (improvement >= 0 ? "+" : "") + improvement.toFixed(1) + '</strong> puntos.' : "Para calcular superación se requieren al menos 6 jugadas.") +
+    '</p>' +
+    '<h3 class="section-title">Historial de jugadas</h3>' +
+    recordsTable(records);
 }
 
 function recordsTable(records) {
-  return `
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Jugada</th>
-            <th>Fecha</th>
-            <th>Correctas</th>
-            <th>Logro</th>
-            <th>Nota</th>
-            <th>Estado</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${records.map(r => `
-            <tr>
-              <td>${r.jugada}</td>
-              <td>${escapeHtml(r.fecha)}</td>
-              <td>${r.correctas}/${r.total}</td>
-              <td>${r.porcentaje}%</td>
-              <td>${Number(r.nota).toFixed(1)}</td>
-              <td>${escapeHtml(r.estado)}</td>
-            </tr>
-          `).join("")}
-        </tbody>
-      </table>
-    </div>
-  `;
+  var html = '<div class="table-wrap"><table><thead><tr>' +
+    '<th>Jugada</th><th>Fecha</th><th>Correctas</th><th>Logro</th><th>Nota</th><th>Estado</th>' +
+    '</tr></thead><tbody>';
+  
+  for (var i = 0; i < records.length; i++) {
+    var r = records[i];
+    html += '<tr>' +
+      '<td>' + r.jugada + '</td>' +
+      '<td>' + escapeHtml(r.fecha) + '</td>' +
+      '<td>' + r.correctas + '/' + r.total + '</td>' +
+      '<td>' + r.porcentaje + '%</td>' +
+      '<td>' + Number(r.nota).toFixed(1) + '</td>' +
+      '<td>' + escapeHtml(r.estado) + '</td>' +
+      '</tr>';
+  }
+  
+  html += '</tbody></table></div>';
+  return html;
 }
 
 // ===========================================================
@@ -1811,38 +1896,431 @@ function recordsTable(records) {
 // ===========================================================
 
 function groupByStudent() {
-  const history = getHistory();
-  const grouped = {};
+  var history = getHistory();
+  var grouped = {};
 
-  history.forEach(record => {
-    const key = record.nombre.toLowerCase();
+  for (var i = 0; i < history.length; i++) {
+    var record = history[i];
+    var key = record.nombre.toLowerCase();
     if (!grouped[key]) grouped[key] = [];
     grouped[key].push(record);
-  });
+  }
 
-  Object.keys(grouped).forEach(key => {
-    grouped[key].sort((a, b) => a.timestamp - b.timestamp);
-  });
+  var keys = Object.keys(grouped);
+  for (var i = 0; i < keys.length; i++) {
+    grouped[keys[i]].sort(function(a, b) { return a.timestamp - b.timestamp; });
+  }
 
   return grouped;
 }
 
 function calculateImprovement(records) {
   if (records.length < MIN_PLAYS_FOR_RANKING) return null;
-  const firstThree = records.slice(0, 3);
-  const lastThree = records.slice(-3);
-  const firstAvg = firstThree.reduce((sum, r) => sum + r.nota, 0) / firstThree.length;
-  const lastAvg = lastThree.reduce((sum, r) => sum + r.nota, 0) / lastThree.length;
+
+  var firstThree = records.slice(0, 3);
+  var lastThree = records.slice(-3);
+  
+  var firstSum = 0;
+  for (var i = 0; i < firstThree.length; i++) {
+    firstSum += firstThree[i].nota;
+  }
+  var firstAvg = firstSum / firstThree.length;
+  
+  var lastSum = 0;
+  for (var i = 0; i < lastThree.length; i++) {
+    lastSum += lastThree[i].nota;
+  }
+  var lastAvg = lastSum / lastThree.length;
+
   return Number((lastAvg - firstAvg).toFixed(1));
 }
 
 function studentStats() {
-  const grouped = groupByStudent();
+  var grouped = groupByStudent();
+  var keys = Object.keys(grouped);
+  var stats = [];
 
-  return Object.values(grouped).map(records => {
-    const name = records[0].nombre;
-    const plays = records.length;
-    const avg = records.reduce((sum, r) => sum + r.nota, 0) / plays;
-    const best = Math.max(...records.map(r => r.nota));
-    const last = records[records.length - 1].nota;
-    const improvement = calculate
+  for (var i = 0; i < keys.length; i++) {
+    var records = grouped[keys[i]];
+    var name = records[0].nombre;
+    var plays = records.length;
+    
+    var sum = 0;
+    for (var j = 0; j < records.length; j++) {
+      sum += records[j].nota;
+    }
+    var avg = sum / plays;
+    
+    var best = records[0].nota;
+    for (var j = 1; j < records.length; j++) {
+      if (records[j].nota > best) best = records[j].nota;
+    }
+    
+    var last = records[records.length - 1].nota;
+    var improvement = calculateImprovement(records);
+
+    var totalErrors = { serie: 0, paralelo: 0 };
+    for (var j = 0; j < records.length; j++) {
+      var err = records[j].errores || {};
+      totalErrors.serie += err.serie || 0;
+      totalErrors.paralelo += err.paralelo || 0;
+    }
+
+    stats.push({
+      name: name,
+      plays: plays,
+      avg: Number(avg.toFixed(1)),
+      best: Number(best.toFixed(1)),
+      last: Number(last.toFixed(1)),
+      improvement: improvement,
+      errors: totalErrors
+    });
+  }
+  
+  return stats;
+}
+
+function showRanking() {
+  hideAllScreens();
+  document.getElementById("screen-ranking").classList.remove("hidden");
+
+  var stats = studentStats();
+  var content = document.getElementById("ranking-content");
+
+  if (stats.length === 0) {
+    content.innerHTML = '<p class="small-text" style="margin-top:1rem;">Aún no existen jugadas registradas.</p>';
+    return;
+  }
+
+  var practiceRank = stats.slice().sort(function(a, b) { return b.plays - a.plays; }).slice(0, 10);
+  
+  var avgRank = stats.filter(function(s) { return s.plays >= MIN_PLAYS_FOR_RANKING; })
+    .sort(function(a, b) { return b.avg - a.avg; }).slice(0, 10);
+  
+  var improvementRank = stats.filter(function(s) { return s.improvement !== null; })
+    .sort(function(a, b) { return b.improvement - a.improvement; }).slice(0, 10);
+
+  content.innerHTML =
+    '<h3 class="section-title">Estudiantes que más han practicado</h3>' +
+    rankingTable(practiceRank, "plays") +
+    '<h3 class="section-title">Mejor promedio desde 6 jugadas</h3>' +
+    (avgRank.length ? rankingTable(avgRank, "avg") : '<p class="small-text">Aún no hay estudiantes con 6 jugadas registradas.</p>') +
+    '<h3 class="section-title">Mayor superación</h3>' +
+    (improvementRank.length ? rankingTable(improvementRank, "improvement") : '<p class="small-text">Aún no hay datos suficientes para calcular superación.</p>');
+}
+
+function rankingTable(items, metric) {
+  var metricTitle = {
+    plays: "Jugadas",
+    avg: "Promedio",
+    improvement: "Mejora"
+  }[metric];
+
+  var html = '<div class="table-wrap"><table><thead><tr>' +
+    '<th>Posición</th><th>Estudiante</th><th>' + metricTitle + '</th>' +
+    '</tr></thead><tbody>';
+  
+  for (var i = 0; i < items.length; i++) {
+    var item = items[i];
+    html += '<tr>' +
+      '<td>' + (i + 1) + '</td>' +
+      '<td>' + escapeHtml(item.name) + '</td>' +
+      '<td>' + formatMetric(item, metric) + '</td>' +
+      '</tr>';
+  }
+  
+  html += '</tbody></table></div>';
+  return html;
+}
+
+function formatMetric(item, metric) {
+  if (metric === "plays") return String(item.plays);
+  if (metric === "avg") return item.avg.toFixed(1);
+  if (metric === "improvement") return (item.improvement >= 0 ? "+" : "") + item.improvement.toFixed(1);
+  return "";
+}
+
+// ===========================================================
+// PANEL DOCENTE
+// ===========================================================
+
+// Clave simple: "docente123"
+var TEACHER_PASSWORD = "docente123";
+
+function showTeacherPanel() {
+  var password = prompt("Ingrese clave docente:");
+  if (!password) return;
+
+  if (password !== TEACHER_PASSWORD) {
+    alert("Clave incorrecta.");
+    return;
+  }
+
+  hideAllScreens();
+  document.getElementById("screen-teacher").classList.remove("hidden");
+
+  var stats = studentStats();
+  var history = getHistory();
+  history.sort(function(a, b) { return b.timestamp - a.timestamp; });
+  
+  var content = document.getElementById("teacher-content");
+
+  if (history.length === 0) {
+    content.innerHTML = '<p class="small-text" style="margin-top:1rem;">No existen jugadas registradas.</p>';
+    return;
+  }
+
+  var totalErrors = { serie: 0, paralelo: 0 };
+  for (var i = 0; i < history.length; i++) {
+    var err = history[i].errores || {};
+    totalErrors.serie += err.serie || 0;
+    totalErrors.paralelo += err.paralelo || 0;
+  }
+  
+  var sumNotas = 0;
+  for (var i = 0; i < history.length; i++) {
+    sumNotas += history[i].nota;
+  }
+
+  content.innerHTML =
+    '<div class="stats-grid">' +
+    '<div class="stat-box">' +
+    '<div class="stat-title">Estudiantes</div>' +
+    '<div class="stat-value">' + stats.length + '</div>' +
+    '</div>' +
+    '<div class="stat-box">' +
+    '<div class="stat-title">Jugadas totales</div>' +
+    '<div class="stat-value">' + history.length + '</div>' +
+    '</div>' +
+    '<div class="stat-box">' +
+    '<div class="stat-title">Promedio curso</div>' +
+    '<div class="stat-value">' + (sumNotas / history.length).toFixed(1) + '</div>' +
+    '</div>' +
+    '</div>' +
+    '<h3 class="section-title">Errores frecuentes del curso</h3>' +
+    errorSummaryHtml(totalErrors) +
+    '<h3 class="section-title">Resumen por estudiante</h3>' +
+    teacherStudentTable(stats) +
+    '<h3 class="section-title">Últimas jugadas registradas</h3>' +
+    teacherHistoryTable(history.slice(0, 50));
+}
+
+function teacherStudentTable(stats) {
+  var sorted = stats.slice().sort(function(a, b) {
+    return a.name.localeCompare(b.name);
+  });
+
+  var html = '<div class="table-wrap"><table><thead><tr>' +
+    '<th>Estudiante</th><th>Jugadas</th><th>Promedio</th><th>Mejor</th><th>Última</th><th>Mejora</th><th>Errores Serie/Paralelo</th>' +
+    '</tr></thead><tbody>';
+  
+  for (var i = 0; i < sorted.length; i++) {
+    var s = sorted[i];
+    html += '<tr>' +
+      '<td>' + escapeHtml(s.name) + '</td>' +
+      '<td>' + s.plays + '</td>' +
+      '<td>' + s.avg.toFixed(1) + '</td>' +
+      '<td>' + s.best.toFixed(1) + '</td>' +
+      '<td>' + s.last.toFixed(1) + '</td>' +
+      '<td>' + (s.improvement === null ? "Sin datos" : (s.improvement >= 0 ? "+" : "") + s.improvement.toFixed(1)) + '</td>' +
+      '<td>S:' + s.errors.serie + ' / P:' + s.errors.paralelo + '</td>' +
+      '</tr>';
+  }
+  
+  html += '</tbody></table></div>';
+  return html;
+}
+
+function teacherHistoryTable(records) {
+  var html = '<div class="table-wrap"><table><thead><tr>' +
+    '<th>Estudiante</th><th>Fecha</th><th>Jugada</th><th>Logro</th><th>Nota</th><th>Errores S/P</th>' +
+    '</tr></thead><tbody>';
+  
+  for (var i = 0; i < records.length; i++) {
+    var r = records[i];
+    var err = r.errores || {};
+    html += '<tr>' +
+      '<td>' + escapeHtml(r.nombre) + '</td>' +
+      '<td>' + escapeHtml(r.fecha) + '</td>' +
+      '<td>' + r.jugada + '</td>' +
+      '<td>' + r.porcentaje + '%</td>' +
+      '<td>' + Number(r.nota).toFixed(1) + '</td>' +
+      '<td>' + (err.serie || 0) + '/' + (err.paralelo || 0) + '</td>' +
+      '</tr>';
+  }
+  
+  html += '</tbody></table></div>';
+  return html;
+}
+
+function cleanOldRecords() {
+  var ok = confirm("Se conservarán solo las últimas " + MAX_PLAYS_PER_STUDENT + " jugadas por estudiante. ¿Desea continuar?");
+  if (!ok) return;
+
+  var grouped = groupByStudent();
+  var cleaned = [];
+  
+  var keys = Object.keys(grouped);
+  for (var i = 0; i < keys.length; i++) {
+    var records = grouped[keys[i]];
+    var lastRecords = records.slice(-MAX_PLAYS_PER_STUDENT);
+    for (var j = 0; j < lastRecords.length; j++) {
+      cleaned.push(lastRecords[j]);
+    }
+  }
+
+  cleaned.sort(function(a, b) { return a.timestamp - b.timestamp; });
+
+  var counters = {};
+  for (var i = 0; i < cleaned.length; i++) {
+    var key = cleaned[i].nombre.toLowerCase();
+    counters[key] = (counters[key] || 0) + 1;
+    cleaned[i].jugada = counters[key];
+  }
+
+  setHistory(cleaned);
+  alert("Limpieza realizada correctamente.");
+  showTeacherPanelWithoutPassword();
+}
+
+function showTeacherPanelWithoutPassword() {
+  hideAllScreens();
+  document.getElementById("screen-teacher").classList.remove("hidden");
+
+  var stats = studentStats();
+  var history = getHistory();
+  history.sort(function(a, b) { return b.timestamp - a.timestamp; });
+  
+  var content = document.getElementById("teacher-content");
+
+  if (history.length === 0) {
+    content.innerHTML = '<p class="small-text" style="margin-top:1rem;">No existen jugadas registradas.</p>';
+    return;
+  }
+
+  var totalErrors = { serie: 0, paralelo: 0 };
+  for (var i = 0; i < history.length; i++) {
+    var err = history[i].errores || {};
+    totalErrors.serie += err.serie || 0;
+    totalErrors.paralelo += err.paralelo || 0;
+  }
+  
+  var sumNotas = 0;
+  for (var i = 0; i < history.length; i++) {
+    sumNotas += history[i].nota;
+  }
+
+  content.innerHTML =
+    '<div class="stats-grid">' +
+    '<div class="stat-box">' +
+    '<div class="stat-title">Estudiantes</div>' +
+    '<div class="stat-value">' + stats.length + '</div>' +
+    '</div>' +
+    '<div class="stat-box">' +
+    '<div class="stat-title">Jugadas totales</div>' +
+    '<div class="stat-value">' + history.length + '</div>' +
+    '</div>' +
+    '<div class="stat-box">' +
+    '<div class="stat-title">Promedio curso</div>' +
+    '<div class="stat-value">' + (sumNotas / history.length).toFixed(1) + '</div>' +
+    '</div>' +
+    '</div>' +
+    '<h3 class="section-title">Errores frecuentes del curso</h3>' +
+    errorSummaryHtml(totalErrors) +
+    '<h3 class="section-title">Resumen por estudiante</h3>' +
+    teacherStudentTable(stats) +
+    '<h3 class="section-title">Últimas jugadas registradas</h3>' +
+    teacherHistoryTable(history.slice(0, 50));
+}
+
+function deleteAllHistory() {
+  var ok = confirm("Esta acción borrará todo el historial local del navegador. ¿Desea continuar?");
+  if (!ok) return;
+
+  localStorage.removeItem(STORAGE_KEY);
+  alert("Historial borrado correctamente.");
+  showTeacherPanelWithoutPassword();
+}
+
+function exportHistoryCSV() {
+  var history = getHistory();
+
+  if (history.length === 0) {
+    alert("No hay historial para exportar.");
+    return;
+  }
+
+  var headers = [
+    "nombre", "fecha", "jugada", "correctas", "total", "porcentaje", "nota", "estado",
+    "errores_serie", "errores_paralelo"
+  ];
+
+  var rows = [];
+  for (var i = 0; i < history.length; i++) {
+    var r = history[i];
+    var err = r.errores || {};
+    rows.push([
+      r.nombre, r.fecha, r.jugada, r.correctas, r.total, r.porcentaje, r.nota, r.estado,
+      err.serie || 0, err.paralelo || 0
+    ]);
+  }
+
+  var csvLines = [headers];
+  for (var i = 0; i < rows.length; i++) {
+    var quoted = [];
+    for (var j = 0; j < rows[i].length; j++) {
+      quoted.push('"' + String(rows[i][j]).replace(/"/g, '""') + '"');
+    }
+    csvLines.push(quoted.join(";"));
+  }
+  
+  var csv = csvLines.join("\n");
+
+  var blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement("a");
+  a.href = url;
+  a.download = "historial_kirchhoff.csv";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// ===========================================================
+// ATAJOS DE TECLADO
+// ===========================================================
+
+document.addEventListener("keydown", function(event) {
+  var questionVisible = !document.getElementById("screen-question").classList.contains("hidden");
+  if (!questionVisible) return;
+
+  if (event.key === "Enter") {
+    var submitBtn = document.getElementById("btn-submit");
+    var nextBtn = document.getElementById("btn-next");
+    
+    if (!submitBtn.classList.contains("hidden")) {
+      submitAnswer();
+    } else if (!nextBtn.classList.contains("hidden")) {
+      nextQuestion();
+    }
+  }
+});
+
+// ===========================================================
+// INICIALIZACIÓN
+// ===========================================================
+
+// Precargar voces cuando estén disponibles
+if ("speechSynthesis" in window) {
+  if (window.speechSynthesis.onvoiceschanged !== undefined) {
+    window.speechSynthesis.onvoiceschanged = function() {
+      getSpanishMaleVoice();
+    };
+  }
+}
+
+</script>
+
+</body>
+</html>
