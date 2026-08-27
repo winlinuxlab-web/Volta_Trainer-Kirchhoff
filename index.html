@@ -698,6 +698,51 @@ function submitAnswer() {
     if (streak >= 3) showStreakToast(`🔥 ¡Racha ×${streak}!`);
   } else {
     streak = 0;
+     
+    // Generación de realimentación paso a paso según el tipo de circuito
+    let explicacion = "";
+    const numRes = q.data.filter(d => d.l.startsWith('R')).length;
+    const resistenciaValores = q.data.filter(d => d.l.startsWith('R')).map(d => parseFloat(d.v));
+    const vTotal = parseFloat(q.data.find(d => d.l.includes('V'))?.v || 0);
+
+    if (q.type.includes('SERIE')) {
+      if (q.text.includes('Resistencia Total')) {
+        let suma = resistenciaValores.reduce((a, b) => a + b, 0);
+        explicacion = `Paso a paso (Ley de Ohm/Kirchhoff en Serie):<br>` +
+          `1. En un circuito serie, las resistencias se suman directamente: $R_t = R_1 + R_2${numRes > 3 ? ' + ...' : ''}$<br>` +
+          `2. Suma los valores: ${resistenciaValores.join(' + ')} = <strong>${suma} ${q.unit}</strong>.`;
+      } else if (q.text.includes('Corriente Total')) {
+        let suma = resistenciaValores.reduce((a, b) => a + b, 0);
+        let iCalc = vTotal / suma;
+        explicacion = `Paso a paso:<br>` +
+          `1. Primero calcula la resistencia total sumando las resistencias: $R_t = ${suma} \\Omega$.<br>` +
+          `2. Luego aplica la Ley de Ohm para hallar la corriente: $I_t = \\frac{V_t}{R_t} = \\frac{${vTotal}}{${suma}} = ${iCalc < 0.1 ? (iCalc*1000).toFixed(1) + ' mA' : iCalc.toFixed(3) + ' A'}$.`;
+      } else {
+        let suma = resistenciaValores.reduce((a, b) => a + b, 0);
+        let iCalc = vTotal / suma;
+        let targetIndex = q.text.match(/R(\d+)/)?.[1] || 1;
+        let rVal = resistenciaValores[targetIndex - 1];
+        let vRes = iCalc * rVal;
+        explicacion = `Paso a paso:<br>` +
+          `1. Calcula la corriente total del circuito ($I_t = \\frac{${vTotal}}{${suma}} = ${iCalc.toFixed(3)}\\text{ A}$).<br>` +
+          `2. En serie, la corriente es la misma. Multiplica $I_t$ por el valor de la resistencia ($R_{${targetIndex}} = ${rVal}\\Omega$): ${iCalc.toFixed(3)} × ${rVal} = <strong>${vRes.toFixed(2)} V</strong>.`;
+      }
+    } else {
+      // Paralelo
+      if (q.text.includes('Resistencia Equivalente')) {
+        let inversoSuma = resistenciaValores.reduce((acc, val) => acc + (1 / val), 0);
+        let req = 1 / inversoSuma;
+        explicacion = `Paso a paso (Circuito Paralelo):<br>` +
+          `1. La fórmula de resistencia equivalente es $\\frac{1}{R_{eq}} = \\frac{1}{R_1} + \\frac{1}{R_2}$...<br>` +
+          `2. Calcula los inversos y resuelve: <strong>${req.toFixed(2)} ${q.unit}</strong>.`;
+      } else {
+        explicacion = `Paso a paso:<br>` +
+          `1. Recuerda que en paralelo el voltaje en cada rama es igual al voltaje total (${vTotal}V).<br>` +
+          `2. Aplica la ley de Ohm ($I = \\frac{V}{R}$) en la resistencia solicitada para obtener el resultado correcto: <strong>${q.ans} ${q.unit}</strong>.`;
+      }
+    }
+
+    fb.innerHTML = `<strong>INCORRECTO.</strong> El valor esperado era: ${q.ans} ${q.unit}<br><br><span style="font-weight:normal; font-size:0.9rem;">${explicacion}</span>`;
   }
 
   document.getElementById('btn-submit').classList.add('hidden');
