@@ -3,22 +3,30 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>INACAP - Desafío Kirchhoff</title>
+<title>KirchhoffTrainer: Leyes de Kirchhoff - INACAP</title>
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+
 <style>
 :root {
-  --idp-red: #e2231a;
+  --inacap-red: #e2231a;
   --bg-dark: #0f0f0f;
   --panel: #1a1a1a;
-  --accent: #e2231a;
+  --panel-2: #252525;
   --white: #ffffff;
-  --gray: #888888;
-  --green: #2ecc71;
-  --border: rgba(226, 35, 26, 0.3);
+  --gray: #aaaaaa;
+  --dark-gray: #777777;
+  --border: rgba(226, 35, 26, 0.35);
+  --success: #2ecc71;
+  --warning: #f1c40f;
 }
 
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
 
 body {
   background: var(--bg-dark);
@@ -31,13 +39,15 @@ body {
 
 #app {
   width: 100%;
-  max-width: 800px;
+  max-width: 920px;
   padding: 2rem 1rem;
+  display: flex;
+  flex-direction: column;
 }
 
 header {
   text-align: center;
-  border-bottom: 3px solid var(--idp-red);
+  border-bottom: 3px solid var(--inacap-red);
   margin-bottom: 2rem;
   padding-bottom: 1.5rem;
 }
@@ -47,7 +57,7 @@ header {
   font-size: 2.8rem;
   font-weight: 900;
   margin-bottom: 0.2rem;
-  color: var(--idp-red);
+  color: var(--inacap-red);
   letter-spacing: 2px;
 }
 
@@ -62,7 +72,7 @@ header {
 
 .sub-title {
   font-size: 1.2rem;
-  color: var(--idp-red);
+  color: var(--inacap-red);
   font-weight: 600;
   margin-top: 0.5rem;
   text-transform: uppercase;
@@ -79,32 +89,41 @@ header {
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 2rem;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  padding: 2.2rem;
+  box-shadow: 0 15px 35px rgba(0,0,0,0.8);
 }
 
 .btn {
-  width: 100%;
-  padding: 1rem;
   font-family: 'Orbitron', sans-serif;
-  font-size: 1rem;
   font-weight: 700;
-  text-transform: uppercase;
-  cursor: pointer;
+  font-size: 1rem;
+  padding: 1rem;
   border: none;
-  border-radius: 4px;
+  cursor: pointer;
   transition: 0.3s;
-  margin-top: 0.5rem;
+  text-transform: uppercase;
+  width: 100%;
+  margin-top: 0.6rem;
+  border-radius: 4px;
 }
-.btn-primary { background: var(--idp-red); color: white; }
-.btn-primary:hover { background: #b51a14; }
-.btn-secondary { background: #333333; color: #ffffff; border: 1px solid #555555; }
-.btn-secondary:hover { background: #444444; }
 
-.grid-2 {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 0.8rem;
+.btn-primary {
+  background: var(--inacap-red);
+  color: #fff;
+}
+
+.btn-primary:hover {
+  background: #b51a14;
+}
+
+.btn-secondary {
+  background: #333333;
+  color: #ffffff;
+  border: 1px solid #555555;
+}
+
+.btn-secondary:hover {
+  background: #444444;
 }
 
 .form-control {
@@ -116,516 +135,497 @@ header {
   font-size: 1.2rem;
   color: var(--white);
   outline: none;
-  margin: 0.5rem 0 1.5rem;
+  margin: 0.5rem 0 1rem;
   border-radius: 4px;
 }
-.form-control:focus { border-color: var(--idp-red); }
 
-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 0.8rem;
-  font-size: 0.95rem;
-}
-th, td {
-  border: 1px solid #444;
-  padding: 0.7rem;
-  text-align: left;
-}
-th {
-  background: #2b2b2b;
-  color: var(--idp-red);
-  text-transform: uppercase;
-  font-family: 'Orbitron';
-  font-size: 0.8rem;
-}
-tr:nth-child(even) { background: #202020; }
-
-.small-text { color: var(--gray); font-size: 0.95rem; }
-
-.avatar-layout {
-  display: grid;
-  grid-template-columns: 200px 1fr;
-  gap: 1.4rem;
-  align-items: center;
-  margin-bottom: 1.5rem;
-}
-.avatar-img {
-  width: 100%;
-  height: auto;
-  object-fit: contain;
-  filter: drop-shadow(0 0 15px rgba(226,35,26,0.3));
-  animation: float 3s ease-in-out infinite;
-}
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
-}
-.speech-bubble {
-  background: #222;
-  border-left: 5px solid var(--idp-red);
-  border-radius: 8px;
-  padding: 1.2rem;
-  line-height: 1.5;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-}
-.speech-title {
-  font-family: 'Orbitron', sans-serif;
-  color: var(--idp-red);
-  font-weight: 900;
-  margin-bottom: 0.4rem;
-  text-transform: uppercase;
+.form-control:focus {
+  border-color: var(--inacap-red);
 }
 
-@media (max-width: 600px) {
-  .avatar-layout { grid-template-columns: 1fr; text-align: center; }
-  .avatar-img { max-width: 160px; margin: 0 auto; }
-  .grid-2 { grid-template-columns: 1fr; }
-}
-
-.q-meta {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 1.5rem;
-  font-family: 'Orbitron', sans-serif;
-  font-size: 0.8rem;
-}
-.q-badge { background: var(--idp-red); padding: 0.4rem 0.8rem; }
-.data-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-  margin-bottom: 2rem;
-}
-.data-chip {
-  background: #252525;
-  border-left: 3px solid var(--idp-red);
-  padding: 0.6rem 1rem;
-  min-width: 110px;
-}
-.dc-label { font-size: 0.7rem; color: var(--idp-red); text-transform: uppercase; }
-.dc-value { font-size: 1.2rem; font-weight: 700; font-family: 'Share Tech Mono'; }
-.question-text {
-  font-size: 1.3rem;
-  margin-bottom: 1.5rem;
-  line-height: 1.4;
-  border-left: 4px solid var(--white);
-  padding-left: 1rem;
-}
-.input-group {
-  display: flex;
-  gap: 0.5rem;
-  margin-bottom: 1.5rem;
-}
 .answer-input {
   flex: 1;
   background: #2a2a2a;
   border: 2px solid #444;
   padding: 1rem;
-  color: white;
+  font-family: 'Share Tech Mono', monospace;
   font-size: 1.5rem;
-  font-family: 'Share Tech Mono';
+  color: var(--white);
   outline: none;
+  border-radius: 4px 0 0 4px;
 }
-.answer-input:focus { border-color: var(--idp-red); }
-.unit-tag {
+
+.answer-input:focus {
+  border-color: var(--inacap-red);
+}
+
+.unit-display {
   background: #333;
   padding: 0 1.5rem;
   display: flex;
   align-items: center;
   font-weight: 700;
-  color: var(--idp-red);
+  color: var(--inacap-red);
   font-size: 1.2rem;
+  border-radius: 0 4px 4px 0;
 }
-.feedback {
-  padding: 1rem;
-  margin-bottom: 1.5rem;
-  border-radius: 4px;
-  font-weight: 600;
-  display: none;
+
+.q-badge {
+  background: var(--inacap-red);
+  padding: 0.4rem 1rem;
+  font-family: 'Orbitron';
+  font-size: 0.8rem;
 }
+
+.data-chip {
+  background: var(--panel-2);
+  border-left: 4px solid var(--inacap-red);
+  padding: 0.8rem 1.5rem;
+  min-width: 120px;
+}
+
+.dc-value {
+  color: var(--white);
+  font-weight: 700;
+  font-size: 1.3rem;
+  font-family: 'Share Tech Mono';
+}
+
 .nota-display {
   font-family: 'Orbitron';
   font-size: 5rem;
+  color: var(--inacap-red);
   text-align: center;
-  margin: 1rem 0;
-  color: var(--idp-red);
 }
-.stats { text-align: center; margin-bottom: 2rem; font-size: 1.2rem; color: var(--gray); }
-.hidden { display: none; }
+
+.hidden {
+  display: none !important;
+}
+
+#feedback, .message-box {
+  line-height: 1.5;
+}
+
+#feedback {
+  background: #ffffff !important;
+  color: #111111 !important;
+  border: 1px solid #cccccc !important;
+  border-radius: 6px;
+}
+
+#feedback strong {
+  color: #111111 !important;
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.8rem;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+
+.stat-box {
+  background: #222;
+  border: 1px solid #444;
+  border-left: 4px solid var(--inacap-red);
+  padding: 1rem;
+  border-radius: 4px;
+}
+
+.stat-title {
+  color: var(--gray);
+  font-size: 0.9rem;
+  text-transform: uppercase;
+}
+
+.stat-value {
+  font-family: 'Share Tech Mono';
+  font-size: 1.5rem;
+  color: var(--white);
+  margin-top: 0.3rem;
+}
+
+.table-wrap {
+  overflow-x: auto;
+  margin-top: 1rem;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0.8rem;
+  font-size: 1rem;
+}
+
+th, td {
+  border: 1px solid #444;
+  padding: 0.7rem;
+  text-align: left;
+}
+
+th {
+  background: #2b2b2b;
+  color: var(--inacap-red);
+  text-transform: uppercase;
+}
+
+tr:nth-child(even) {
+  background: #202020;
+}
+
+.small-text {
+  color: var(--gray);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.section-title {
+  margin: 1.4rem 0 0.6rem;
+  color: var(--inacap-red);
+  font-size: 1.4rem;
+}
+
+@media (max-width: 720px) {
+  .grid-2, .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .inst-name {
+    font-size: 2rem;
+  }
+
+  .card {
+    padding: 1.5rem;
+  }
+}
+
+/* ===== GAMIFICACIÓN ===== */
+#streak-toast {
+  position: fixed;
+  top: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%) translateY(-120px);
+  background: linear-gradient(135deg, #f1c40f, #e67e22);
+  color: #111;
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 900;
+  font-size: 1.1rem;
+  padding: 0.8rem 2rem;
+  border-radius: 50px;
+  box-shadow: 0 8px 30px rgba(241,196,15,0.5);
+  z-index: 9999;
+  transition: transform 0.45s cubic-bezier(0.34,1.56,0.64,1);
+  white-space: nowrap;
+  pointer-events: none;
+}
+#streak-toast.show {
+  transform: translateX(-50%) translateY(0);
+}
+
+#streak-bar {
+  text-align: center;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--warning);
+  margin-bottom: 0.8rem;
+  min-height: 1.4rem;
+  transition: opacity 0.3s;
+}
+
+.medal-display {
+  text-align: center;
+  padding: 1.5rem 0 0.5rem;
+}
+.medal-icon {
+  font-size: 4rem;
+  display: block;
+  animation: medal-pop 0.6s cubic-bezier(0.34,1.56,0.64,1) both;
+}
+@keyframes medal-pop {
+  from { transform: scale(0) rotate(-20deg); opacity: 0; }
+  to   { transform: scale(1) rotate(0deg);  opacity: 1; }
+}
+.medal-label {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-top: 0.4rem;
+  letter-spacing: 0.05em;
+}
+.medal-sub {
+  font-size: 0.95rem;
+  color: var(--gray);
+  margin-top: 0.2rem;
+}
+
+.hist-compare {
+  background: #1e1e1e;
+  border: 1px solid #444;
+  border-left: 4px solid var(--warning);
+  border-radius: 6px;
+  padding: 1rem 1.5rem;
+  margin: 1rem 0;
+  font-size: 1rem;
+  line-height: 1.7;
+}
+.hist-compare .arrow-up   { color: var(--success); font-weight: 700; }
+.hist-compare .arrow-down { color: var(--inacap-red); font-weight: 700; }
+.hist-compare .arrow-same { color: var(--gray); font-weight: 700; }
+
+/* ===== AVATAR MAXWATT ===== */
+.avatar-layout {
+  display: grid;
+  grid-template-columns: 230px 1fr;
+  gap: 1.4rem;
+  align-items: center;
+  margin-bottom: 1.4rem;
+}
+
+.avatar-img-wrap {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.avatar-img {
+  max-width: 220px;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 0 24px rgba(226,35,26,0.35));
+}
+
+.avatar-img.dynamic {
+  transform-origin: center bottom;
+  animation: maxwatt-float 2.8s ease-in-out infinite;
+}
+
+@keyframes maxwatt-float {
+  0%, 100% { transform: translateY(0) rotate(-1deg); }
+  50% { transform: translateY(-8px) rotate(1deg); }
+}
+
+.speech-bubble {
+  position: relative;
+  background: #222;
+  border: 1px solid var(--border);
+  border-left: 5px solid var(--inacap-red);
+  border-radius: 12px;
+  padding: 1.2rem 1.4rem;
+  line-height: 1.5;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+}
+
+.speech-bubble::before {
+  content: "";
+  position: absolute;
+  left: -16px;
+  top: 42px;
+  border-width: 10px 16px 10px 0;
+  border-style: solid;
+  border-color: transparent #222 transparent transparent;
+}
+
+.speech-title {
+  font-family: 'Orbitron', sans-serif;
+  color: var(--inacap-red);
+  font-weight: 900;
+  margin-bottom: 0.4rem;
+  text-transform: uppercase;
+}
+
+.avatar-mini-btn {
+  margin-top: 0.8rem;
+  display: inline-block;
+  width: auto;
+  padding: 0.6rem 0.9rem;
+  font-size: 0.72rem;
+}
+
+.avatar-result-box {
+  margin: 1rem 0 1.5rem;
+}
+
+.avatar-result-box .avatar-layout {
+  grid-template-columns: 180px 1fr;
+  margin-bottom: 0;
+}
+
+.avatar-result-box .avatar-img {
+  max-width: 170px;
+}
+
+.question-statement {
+  background: #202020;
+  border-left: 4px solid var(--inacap-red);
+  padding: 1rem 1.2rem;
+  border-radius: 6px;
+  line-height: 1.35;
+}
+
+@media (max-width: 720px) {
+  .avatar-layout,
+  .avatar-result-box .avatar-layout {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+  .speech-bubble::before {
+    display: none;
+  }
+  .avatar-img {
+    max-width: 190px;
+  }
+}
 </style>
 </head>
+
 <body>
 
+<!-- Toast de racha -->
+<div id="streak-toast">🔥 ¡RACHA!</div>
+
 <div id="app">
-  <header>
-    <div class="inst-name">INACAP</div>
-    <div class="inst-dept">Electricidad y Electrónica</div>
-    <div class="sub-title">Leyes de Kirchhoff: LVK & LCK</div>
-    <div class="credit-line">Aporte de la docente Edith Mena (NMZ)</div>
-  </header>
 
-  <!-- PANTALLA DE BIENVENIDA -->
-  <div id="screen-welcome" class="card">
-    <div class="avatar-layout">
-      <div>
-        <img class="avatar-img" src="assets/img/max-welcome.png" alt="Avatar MaxWatt">
-      </div>
-      <div class="speech-bubble">
-        <div class="speech-title">MaxWatt te desafía</div>
-        <p>
-          Calcula voltajes, corrientes o resistencias incógnitas en 10 ejercicios de circuitos <strong>Serie</strong> y <strong>Paralelo</strong>.<br><br>
-          <em>Exigencia: 60% para nota 4.0</em>
-        </p>
-      </div>
+<header>
+  <div class="inst-name">INACAP</div>
+  <div class="inst-dept">Electricidad y Electrónica</div>
+  <div class="sub-title">KirchhoffTrainer — Leyes de Kirchhoff con MaxWatt</div>
+  <div class="credit-line">Aporte de la docente Edith Mena (NMZ)</div>
+</header>
+
+<!-- ====================== -->
+<!-- PANTALLA DE BIENVENIDA -->
+<!-- ====================== -->
+<div class="card" id="screen-welcome">
+  <div class="avatar-layout">
+    <div class="avatar-img-wrap">
+      <img class="avatar-img dynamic" src="assets/img/max-welcome.png" alt="Avatar MaxWatt en pose dinámica">
     </div>
 
-    <label for="student-name" style="font-weight:700;">Nombre del estudiante</label>
-    <input class="form-control" id="student-name" type="text" placeholder="Ejemplo: Ana Pérez">
-
-    <div class="grid-2">
-      <button class="btn btn-primary" onclick="start()">Comenzar Desafío</button>
-      <button class="btn btn-secondary" onclick="showStudentProgressFromWelcome()">Ver Mi Progreso</button>
-      <button class="btn btn-secondary" onclick="showRanking()">Ver Ranking</button>
-      <button class="btn btn-secondary" onclick="showTeacherPanel()">Panel Docente</button>
-    </div>
-  </div>
-
-  <!-- PANTALLA DE PREGUNTAS -->
-  <div id="screen-quiz" class="card hidden">
-    <div class="q-meta">
-      <span class="q-badge" id="q-idx">PREGUNTA 1 / 10</span>
-      <span id="q-type" style="color:var(--idp-red); font-weight: 900;">SERIE</span>
-    </div>
-
-    <div class="data-grid" id="data-grid"></div>
-    <div class="question-text" id="q-text"></div>
-
-    <div class="input-group">
-      <input type="number" id="ans-input" class="answer-input" step="any" placeholder="0.00">
-      <div class="unit-tag" id="unit-tag">V</div>
-    </div>
-
-    <div id="feedback" class="feedback"></div>
-
-    <button id="btn-check" class="btn btn-primary" onclick="check()">Validar Respuesta</button>
-    <button id="btn-next" class="btn btn-primary hidden" onclick="next()">Siguiente Ejercicio</button>
-  </div>
-
-  <!-- PANTALLA DE RESULTADOS -->
-  <div id="screen-res" class="card hidden">
-    <h2 style="text-align:center; font-family:'Orbitron';">RESULTADO FINAL</h2>
-    <div class="nota-display" id="nota-res">1.0</div>
-    <div class="stats" id="stats-res"></div>
-    
-    <div class="grid-2">
-      <button class="btn btn-primary" onclick="goHome()">Volver al Inicio</button>
-      <button class="btn btn-secondary" onclick="showMyProgress()">Ver Mi Progreso</button>
-      <button class="btn btn-secondary" onclick="showRanking()">Ver Ranking</button>
-      <button class="btn btn-secondary" onclick="location.reload()">Reiniciar Evaluador</button>
+    <div class="speech-bubble">
+      <div class="speech-title">MaxWatt te da la bienvenida</div>
+      <p>
+        Hola, soy <strong>MaxWatt</strong>. En KirchhoffTrainer resolverás 10 desafíos de circuitos eléctricos
+        usando las Leyes de Kirchhoff (LVK y LCK). Analizarás circuitos en serie y paralelo para calcular
+        voltajes, corrientes y resistencias.
+      </p>
+      <p style="margin-top:0.6rem;">
+        <strong>Reglas:</strong> escribe solo el número, usa la unidad indicada en pantalla,
+        revisa conversiones de mA a A cuando corresponda y valida tu respuesta.
+        La nota 4,0 se obtiene con 60% de logro.
+      </p>
+      <button class="btn btn-secondary avatar-mini-btn" onclick="speakWelcomeAvatar()">🔊 Escuchar a MaxWatt</button>
     </div>
   </div>
 
-  <!-- PANTALLA HISTORIAL -->
-  <div class="card hidden" id="screen-progress">
-    <h2>Mi Progreso</h2>
-    <div id="progress-content" style="margin-top: 1rem;"></div>
-    <div class="grid-2" style="margin-top:1.5rem;">
-      <button class="btn btn-primary" onclick="goHome()">Volver al Inicio</button>
-      <button class="btn btn-secondary" onclick="showRanking()">Ver Ranking</button>
-    </div>
+  <p style="text-align:center; margin-bottom:1.5rem; color:var(--gray);">
+    KirchhoffTrainer generará 10 ejercicios aleatorios de circuitos Serie y Paralelo.<br>
+    <strong>Nota mínima de aprobación (4.0): 60% de logro.</strong>
+  </p>
+
+  <label for="student-name" style="font-weight:700;">Nombre del estudiante</label>
+  <input class="form-control" id="student-name" type="text" placeholder="Ejemplo: Ana Pérez o ana.perez">
+
+  <div class="message-box" style="background:#222; border-left:4px solid var(--inacap-red); padding:1rem; margin-bottom:1rem;">
+    <strong>Funcionamiento:</strong><br>
+    El estudiante podrá revisar su progreso y consultar rankings. La asistencia auditiva del enunciado
+    se activa o desactiva desde cada pregunta, no desde esta pantalla.
   </div>
 
-  <!-- PANTALLA RANKING -->
-  <div class="card hidden" id="screen-ranking">
-    <h2>Ranking del Curso</h2>
-    <p class="small-text" style="margin-top:0.5rem;">Estudiantes con al menos 1 evaluación registrada.</p>
-    <div id="ranking-content" style="margin-top: 1rem;"></div>
-    <button class="btn btn-primary" style="margin-top:1.5rem;" onclick="goHome()">Volver al Inicio</button>
+  <div class="grid-2">
+    <button class="btn btn-primary" onclick="startQuiz()">Comenzar Evaluación</button>
+    <button class="btn btn-secondary" onclick="showStudentProgressFromWelcome()">Ver Mi Progreso</button>
+    <button class="btn btn-secondary" onclick="showRanking()">Ver Ranking</button>
+    <button class="btn btn-secondary" onclick="showTeacherPanel().catch(console.error)">Panel Docente</button>
+  </div>
+</div>
+
+<!-- ====================== -->
+<!-- PANTALLA DE PREGUNTAS -->
+<!-- ====================== -->
+<div class="card hidden" id="screen-question">
+
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem; gap:1rem; flex-wrap:wrap;">
+    <span class="q-badge" id="q-num">Pregunta 1</span>
+    <button id="btn-audio-toggle" onclick="toggleAudioInGame()"
+      style="font-family:'Orbitron',sans-serif; font-size:0.7rem; font-weight:700; padding:0.35rem 0.75rem; border:1px solid #555; border-radius:4px; cursor:pointer; background:#333; color:#aaa; text-transform:uppercase; white-space:nowrap; transition:0.3s;"
+      title="Activar/desactivar asistencia auditiva">
+      🔇 Audio
+    </button>
+    <span id="q-type" style="color:var(--inacap-red); font-weight:700;">SERIE</span>
   </div>
 
-  <!-- PANEL DOCENTE -->
-  <div class="card hidden" id="screen-teacher">
-    <h2>Panel Docente</h2>
-    <div id="teacher-content" style="margin-top: 1rem;"></div>
-    <div class="grid-2" style="margin-top:1.5rem;">
-      <button class="btn btn-primary" onclick="goHome()">Volver al Inicio</button>
-      <button class="btn btn-secondary" onclick="exportHistoryCSV()">Exportar CSV</button>
-      <button class="btn btn-secondary" onclick="cleanOldRecords()">Mantener 30 jugadas</button>
-      <button class="btn btn-secondary" onclick="deleteAllHistory()">Borrar Historial</button>
-    </div>
+  <div id="streak-bar"></div>
+
+  <h2 id="question-text" class="question-statement" style="margin-bottom:1rem;"></h2>
+
+  <div class="small-text" style="margin-bottom:0.6rem; font-weight:700; color:var(--gray); text-transform:uppercase; letter-spacing:0.05em;">Datos entregados</div>
+
+  <div id="data-chips" style="display:flex; gap:1rem; flex-wrap:wrap; margin-bottom:2rem;"></div>
+
+  <div style="display:flex; gap:0; margin-bottom:1.5rem;">
+    <input class="answer-input" id="answer-input" type="number" step="any" placeholder="0.00">
+    <div class="unit-display" id="unit-display"></div>
+  </div>
+
+  <div id="feedback" style="display:none; padding:1rem; margin-bottom:1rem; border-radius:4px; font-weight:600;"></div>
+
+  <button class="btn btn-secondary hidden" id="btn-repeat-audio" onclick="readCurrentQuestion()">🔊 Repetir Pregunta (voz activa)</button>
+
+  <button class="btn btn-primary" id="btn-submit" onclick="submitAnswer()">Validar Respuesta</button>
+
+  <button class="btn btn-primary hidden" id="btn-next" onclick="nextQuestion()">Siguiente Ejercicio</button>
+
+</div>
+
+<!-- ====================== -->
+<!-- PANTALLA DE RESULTADOS -->
+<!-- ====================== -->
+<div class="card hidden" id="screen-results">
+
+  <h2 style="text-align:center;">Resultado Final</h2>
+
+  <div id="avatar-result" class="avatar-result-box"></div>
+
+  <div class="nota-display" id="nota-display">1.0</div>
+
+  <div id="res-stats" style="text-align:center; margin-bottom:2rem; font-size:1.2rem; color:var(--gray);"></div>
+
+  <div id="result-detail"></div>
+
+  <div class="grid-2" style="margin-top:1.5rem;">
+    <button class="btn btn-primary" onclick="goHome()">Volver al Inicio</button>
+    <button class="btn btn-secondary" onclick="showMyProgress()">Ver Mi Progreso</button>
+    <button class="btn btn-secondary" onclick="showRanking()">Ver Ranking</button>
+    <button class="btn btn-secondary" onclick="location.reload()">Reiniciar Evaluador</button>
   </div>
 
 </div>
 
-<script>
-const STORAGE_KEY = "historialKirchhoffINACAP";
-let currentStudent = "";
-const E24 = [10, 12, 15, 18, 22, 27, 33, 39, 47, 56, 68, 82, 100, 120, 150, 220, 330, 470, 560, 680, 820, 1000];
-let currentQ = 0, score = 0, questions = [];
+<!-- ====================== -->
+<!-- PANTALLA HISTORIAL -->
+<!-- ====================== -->
+<div class="card hidden" id="screen-progress">
+  <h2>Mi Progreso</h2>
+  <div id="progress-content"></div>
+  <div class="grid-2" style="margin-top:1.5rem;">
+    <button class="btn btn-primary" onclick="goHome()">Volver al Inicio</button>
+    <button class="btn btn-secondary" onclick="showRanking()">Ver Ranking</button>
+  </div>
+</div>
 
-function hideAllScreens() {
-  ['screen-welcome', 'screen-quiz', 'screen-res', 'screen-progress', 'screen-ranking', 'screen-teacher'].forEach(id => {
-    document.getElementById(id).classList.add('hidden');
-  });
-}
-
-function goHome() {
-  hideAllScreens();
-  document.getElementById('screen-welcome').classList.remove('hidden');
-}
-
-function getR() { return E24[Math.floor(Math.random()*E24.length)]; }
-function getV() { return Math.floor(Math.random() * 21) + 10; } 
-
-function generateQuestions() {
-  questions = [];
-  for(let i=0; i<10; i++) {
-    const isSerie = Math.random() > 0.5;
-    const numRes = Math.random() > 0.5 ? 2 : 3;
-    const Vt = getV();
-    const rs = Array.from({length: numRes}, getR);
-    
-    if(isSerie) {
-      const Rt = rs.reduce((a, b) => a + b, 0);
-      const It = Vt / Rt;
-      const subType = Math.floor(Math.random() * 4);
-
-      if(subType === 0) {
-        questions.push({ type: 'SERIE (LVK)', text: 'Calcule la Resistencia Total (Rt) del circuito.', data: rs.map((r,idx)=>({l:`R${idx+1}`, v:r+' Ω'})).concat({l:'V_total', v:Vt+' V'}), ans: Rt, unit: 'Ω' });
-      } else if(subType === 1) {
-        const iDisplay = It < 0.1 ? (It*1000).toFixed(1) : It.toFixed(3);
-        const iUnit = It < 0.1 ? 'mA' : 'A';
-        questions.push({ type: 'SERIE (LVK)', text: 'Calcule la Corriente Total del circuito.', data: rs.map((r,idx)=>({l:`R${idx+1}`, v:r+' Ω'})).concat({l:'V_total', v:Vt+' V'}), ans: parseFloat(iDisplay), unit: iUnit });
-      } else if(subType === 2) {
-        const target = Math.floor(Math.random()*numRes);
-        const Vn = It * rs[target];
-        questions.push({ type: 'SERIE (LVK)', text: `Calcule el Voltaje en la resistencia R${target+1}.`, data: rs.map((r,idx)=>({l:`R${idx+1}`, v:r+' Ω'})).concat({l:'V_total', v:Vt+' V'}), ans: parseFloat(Vn.toFixed(2)), unit: 'V' });
-      } else {
-        const unknownIdx = Math.floor(Math.random()*numRes);
-        const knowns = rs.filter((_, idx) => idx !== unknownIdx);
-        const iDisplay = (It*1000).toFixed(1);
-        questions.push({ type: 'SERIE (LVK)', text: `Si la corriente es ${iDisplay} mA, calcule el valor de R${unknownIdx+1}.`, data: knowns.map((r,idx)=>({l:`R_conocida`, v:r+' Ω'})).concat({l:'V_total', v:Vt+' V'}), ans: rs[unknownIdx], unit: 'Ω' });
-      }
-    } else {
-      const Req = 1 / rs.reduce((a, b) => a + (1/b), 0);
-      const It = Vt / Req;
-      const subType = Math.floor(Math.random() * 4);
-
-      if(subType === 0) {
-        questions.push({ type: 'PARALELO (LCK)', text: 'Calcule la Resistencia Equivalente (Req).', data: rs.map((r,idx)=>({l:`R${idx+1}`, v:r+' Ω'})).concat({l:'V_total', v:Vt+' V'}), ans: parseFloat(Req.toFixed(2)), unit: 'Ω' });
-      } else if(subType === 1) {
-        const iDisplay = It < 0.1 ? (It*1000).toFixed(1) : It.toFixed(2);
-        const iUnit = It < 0.1 ? 'mA' : 'A';
-        questions.push({ type: 'PARALELO (LCK)', text: 'Calcule la Corriente Total de la fuente.', data: rs.map((r,idx)=>({l:`R${idx+1}`, v:r+' Ω'})).concat({l:'V_total', v:Vt+' V'}), ans: parseFloat(iDisplay), unit: iUnit });
-      } else if(subType === 2) {
-        const target = Math.floor(Math.random()*numRes);
-        const In = Vt / rs[target];
-        const iUnit = In < 0.1 ? 'mA' : 'A';
-        const iVal = In < 0.1 ? (In*1000).toFixed(1) : In.toFixed(2);
-        questions.push({ type: 'PARALELO (LCK)', text: `Calcule la corriente que circula por R${target+1}.`, data: rs.map((r,idx)=>({l:`R${idx+1}`, v:r+' Ω'})).concat({l:'V_total', v:Vt+' V'}), ans: parseFloat(iVal), unit: iUnit });
-      } else {
-        const unknownIdx = Math.floor(Math.random()*numRes);
-        const knowns = rs.filter((_, idx) => idx !== unknownIdx);
-        const iDisplay = (It*1000).toFixed(1);
-        questions.push({ type: 'PARALELO (LCK)', text: `Si la corriente total es ${iDisplay} mA, calcule R${unknownIdx+1}.`, data: knowns.map((r,idx)=>({l:`R_conocida`, v:r+' Ω'})).concat({l:'V_total', v:Vt+' V'}), ans: rs[unknownIdx], unit: 'Ω' });
-      }
-    }
-  }
-}
-
-function start() {
-  const nameInput = document.getElementById('student-name').value.trim();
-  if (!nameInput) {
-    alert("Por favor, ingrese su nombre para registrar su avance.");
-    return;
-  }
-  currentStudent = nameInput;
-  currentQ = 0;
-  score = 0;
-  generateQuestions();
-  
-  hideAllScreens();
-  document.getElementById('screen-quiz').classList.remove('hidden');
-  render();
-}
-
-function render() {
-  const q = questions[currentQ];
-  document.getElementById('q-idx').textContent = `PREGUNTA ${currentQ + 1} / 10`;
-  document.getElementById('q-type').textContent = q.type;
-  document.getElementById('q-text').textContent = q.text;
-  document.getElementById('unit-tag').textContent = q.unit;
-  document.getElementById('ans-input').value = '';
-  document.getElementById('feedback').style.display = 'none';
-  document.getElementById('btn-check').classList.remove('hidden');
-  document.getElementById('btn-next').classList.add('hidden');
-  
-  const grid = document.getElementById('data-grid');
-  grid.innerHTML = q.data.map(d => `<div class="data-chip"><div class="dc-label">${d.l}</div><div class="dc-value">${d.v}</div></div>`).join('');
-}
-
-function check() {
-  const valStr = document.getElementById('ans-input').value;
-  if(valStr === "") return;
-  const userAns = parseFloat(valStr);
-  const q = questions[currentQ];
-  const isCorrect = Math.abs(userAns - q.ans) < (q.ans * 0.05) || Math.abs(userAns - q.ans) < 0.1;
-
-  const fb = document.getElementById('feedback');
-  fb.style.display = 'block';
-  fb.style.background = isCorrect ? 'rgba(46,204,113,0.2)' : 'rgba(226,35,26,0.2)';
-  fb.style.color = isCorrect ? '#2ecc71' : '#ff4444';
-  fb.innerHTML = isCorrect ? '<strong>CORRECTO</strong>' : `<strong>INCORRECTO.</strong> Valor esperado aproximado: ${q.ans} ${q.unit}`;
-
-  if(isCorrect) score++;
-  document.getElementById('btn-check').classList.add('hidden');
-  document.getElementById('btn-next').classList.remove('hidden');
-}
-
-function next() {
-  currentQ++;
-  if(currentQ < 10) render();
-  else showResults();
-}
-
-function showResults() {
-  hideAllScreens();
-  document.getElementById('screen-res').classList.remove('hidden');
-  
-  const logro = (score / 10) * 100;
-  let nota = score < 6 ? (score / 6) * 3 + 1 : ((score - 6) / 4) * 3 + 4;
-  if(nota > 7) nota = 7;
-  
-  const finalGrade = nota.toFixed(1);
-  document.getElementById('nota-res').textContent = finalGrade;
-  document.getElementById('stats-res').innerHTML = `Logro: ${logro}%<br>Respuestas Correctas: ${score} de 10`;
-
-  saveHistory(finalGrade, score);
-}
-
-function saveHistory(grade, correctCount) {
-  let history = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-  history.push({
-    student: currentStudent,
-    date: new Date().toISOString(),
-    grade: grade,
-    score: correctCount
-  });
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
-}
-
-function showStudentProgressFromWelcome() {
-  const name = prompt("Ingrese su nombre de usuario para ver su historial:");
-  if(!name) return;
-  currentStudent = name.trim();
-  showMyProgress();
-}
-
-function showMyProgress() {
-  hideAllScreens();
-  document.getElementById('screen-progress').classList.remove('hidden');
-  let history = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-  let userRecords = history.filter(h => h.student.toLowerCase() === currentStudent.toLowerCase());
-  
-  let html = `<p class="small-text">Estudiante: <strong>${currentStudent}</strong></p>`;
-  if(userRecords.length === 0) {
-      html += `<p class="small-text" style="margin-top:1rem;">No hay registros previos para este usuario.</p>`;
-  } else {
-      html += `<table><thead><tr><th>Fecha</th><th>Nota</th><th>Aciertos</th></tr></thead><tbody>`;
-      userRecords.forEach(r => {
-          html += `<tr><td>${new Date(r.date).toLocaleString()}</td><td><strong>${r.grade}</strong></td><td>${r.score}/10</td></tr>`;
-      });
-      html += `</tbody></table>`;
-  }
-  document.getElementById('progress-content').innerHTML = html;
-}
-
-function showRanking() {
-  hideAllScreens();
-  document.getElementById('screen-ranking').classList.remove('hidden');
-  let history = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-  
-  let stats = {};
-  history.forEach(h => {
-      if(!stats[h.student]) stats[h.student] = [];
-      stats[h.student].push(parseFloat(h.grade));
-  });
-
-  let ranking = [];
-  for(let student in stats) {
-      let grades = stats[student];
-      let avg = grades.reduce((a,b) => a+b, 0) / grades.length;
-      ranking.push({ student, avg: avg.toFixed(1), attempts: grades.length });
-  }
-  ranking.sort((a,b) => b.avg - a.avg);
-
-  let html = `<table><thead><tr><th>Estudiante</th><th>Promedio</th><th>Intentos</th></tr></thead><tbody>`;
-  if(ranking.length === 0) {
-      html += `<tr><td colspan="3" style="text-align:center;">Aún no hay registros en el ranking.</td></tr>`;
-  } else {
-      ranking.forEach(r => {
-          html += `<tr><td>${r.student}</td><td><strong>${r.avg}</strong></td><td>${r.attempts}</td></tr>`;
-      });
-  }
-  html += `</tbody></table>`;
-  document.getElementById('ranking-content').innerHTML = html;
-}
-
-function showTeacherPanel() {
-  const password = prompt("Ingrese la contraseña del panel docente:");
-  if (password !== "docente123") {
-      if (password !== null) alert("Contraseña incorrecta.");
-      return;
-  }
-
-  hideAllScreens();
-  document.getElementById('screen-teacher').classList.remove('hidden');
-  let history = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-  
-  let html = `<p class="small-text">Total de evaluaciones (Leyes de Kirchhoff): <strong>${history.length}</strong></p>`;
-  html += `<table style="margin-top:1rem;"><thead><tr><th>Estudiante</th><th>Fecha</th><th>Nota</th></tr></thead><tbody>`;
-  history.slice(-15).reverse().forEach(h => {
-      html += `<tr><td>${h.student}</td><td>${new Date(h.date).toLocaleString()}</td><td>${h.grade}</td></tr>`;
-  });
-  html += `</tbody></table>`;
-  document.getElementById('teacher-content').innerHTML = html;
-}
-
-function exportHistoryCSV() {
-  let history = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-  let csv = "Estudiante,Fecha,Nota,Aciertos\n";
-  history.forEach(h => { csv += `"${h.student}","${h.date}",${h.grade},${h.score}\n`; });
-  let blob = new Blob([csv], { type: 'text/csv' });
-  let url = window.URL.createObjectURL(blob);
-  let a = document.createElement('a');
-  a.href = url;
-  a.download = "historial_kirchhoff_inacap.csv";
-  a.click();
-}
-
-function cleanOldRecords() {
-  let history = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-  let map = {};
-  history.forEach(h => {
-      if(!map[h.student]) map[h.student] = [];
-      map[h.student].push(h);
-  });
-  let newHistory = [];
-  for(let student in map) {
-      newHistory = newHistory.concat(map[student].slice(-30));
-  }
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(newHistory));
-  alert("Historial depurado exitosamente.");
-  showTeacherPanel();
-}
-
-function deleteAllHistory() {
-  if(confirm("¿Está seguro de borrar todo el historial local para este ejercicio?")) {
-      localStorage.removeItem(STORAGE_KEY);
-      showTeacherPanel();
-  }
-}
-</script>
-</body>
-</html>
+<!-- ====================== -->
+<!-- PANTALLA RANKING -->
+<!-- ====================== -->
+<div class="card hidden" id="screen-ranking">
+  <h2>Ranking del Curso</h2>
+  <p class="small-text" style="margin-top:0.5rem;">
+    El ranking de promedio y superación considera estudiantes con al menos 6 jugadas registr
